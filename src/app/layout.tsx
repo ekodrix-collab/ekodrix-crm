@@ -68,7 +68,7 @@ export default function RootLayout({
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Agency CRM" />
+        <meta name="apple-mobile-web-app-title" content="Ekodrix CRM" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#059669" />
         <meta name="msapplication-tap-highlight" content="no" />

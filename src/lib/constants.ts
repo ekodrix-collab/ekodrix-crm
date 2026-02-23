@@ -512,10 +512,11 @@ export const NOTIFICATION_TYPES = {
   payment_received: 'Payment received',
 } as const;
 
+export const APP_NAME = 'Ekodrix CRM';
+export const APP_DESCRIPTION = 'Modern CRM for agencies and service businesses';
+
 // App Configuration
 export const APP_CONFIG = {
-  name: 'Agency CRM',
-  description: 'Internal Lead Management System',
   defaultPageSize: 20,
   maxPageSize: 100,
   followUpDays: [1, 3, 7, 14, 30],

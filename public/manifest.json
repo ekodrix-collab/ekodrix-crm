@@ -1,6 +1,6 @@
 {
-  "name": "Agency CRM",
-  "short_name": "CRM",
+  "name": "Ekodrix CRM",
+  "short_name": "Ekodrix",
   "description": "Internal Lead Management System for Agency",
   "start_url": "/",
   "display": "standalone",

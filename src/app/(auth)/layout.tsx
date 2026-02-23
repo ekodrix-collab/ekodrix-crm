@@ -22,10 +22,11 @@ export default function AuthLayout({
       </div>
 
       {/* Footer */}
-      <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none z-50">
-        <p className="text-muted-foreground text-xs font-medium">
-          © {new Date().getFullYear()} Agency CRM. Internal use only.
-        </p>
+      <div className="flex flex-col">
+        <span className="text-xl font-bold leading-none">Ekodrix CRM</span>
+        <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
+          Secure Access
+        </span>
       </div>
     </div>
   );

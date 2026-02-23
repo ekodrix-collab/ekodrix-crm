@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Search, X, Filter, SlidersHorizontal } from 'lucide-react';
-import { cn, debounce } from '@/lib/utils';
+import { cn, debounce, extractInstagramUsername } from '@/lib/utils';
 import { LEAD_STATUSES, LEAD_SOURCES, PRIORITIES, PROJECT_TYPES } from '@/lib/constants';
 import type { User } from '@/types';
 
@@ -91,7 +91,13 @@ export function LeadFilters({ className }: LeadFiltersProps) {
 
   // Handle search input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    let value = e.target.value;
+
+    // If it looks like an Instagram URL, extract the username
+    if (value.toLowerCase().includes('instagram.com/')) {
+      value = extractInstagramUsername(value);
+    }
+
     setSearch(value);
     debouncedSearch(value);
   };

@@ -41,7 +41,7 @@ import {
     Save,
     Loader2,
 } from 'lucide-react';
-import { debounce } from '@/lib/utils';
+import { debounce, extractInstagramUsername } from '@/lib/utils';
 import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES } from '@/lib/constants';
 import type { User as UserType, Lead } from '@/types';
 
@@ -327,9 +327,22 @@ export function LeadForm({ initialData, isEdit = false }: LeadFormProps) {
                                                     placeholder="@username"
                                                     className="pl-10"
                                                     {...field}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        // Automatically extract username if it looks like a URL or @handle
+                                                        if (value.includes('instagram.com') || value.startsWith('@')) {
+                                                            field.onChange(extractInstagramUsername(value));
+                                                        } else {
+                                                            field.onChange(value);
+                                                        }
+                                                    }}
                                                     onBlur={(e) => {
                                                         field.onBlur();
-                                                        handleFieldBlur('instagram_handle', e.target.value);
+                                                        const extracted = extractInstagramUsername(e.target.value);
+                                                        if (extracted !== e.target.value) {
+                                                            field.onChange(extracted);
+                                                        }
+                                                        handleFieldBlur('instagram_handle', extracted);
                                                     }}
                                                 />
                                             </div>

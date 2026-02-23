@@ -71,7 +71,7 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
 
   if (searchParams.search) {
     query = query.or(
-      `name.ilike.%${searchParams.search}%,email.ilike.%${searchParams.search}%,phone.ilike.%${searchParams.search}%,company_name.ilike.%${searchParams.search}%`
+      `name.ilike.%${searchParams.search}%,email.ilike.%${searchParams.search}%,phone.ilike.%${searchParams.search}%,company_name.ilike.%${searchParams.search}%,instagram_handle.ilike.%${searchParams.search}%`
     );
   }
 

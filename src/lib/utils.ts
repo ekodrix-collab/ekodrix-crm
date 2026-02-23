@@ -110,18 +110,29 @@ export function formatCurrencyCompact(
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return 'N/A';
 
-  // Remove all non-digits
-  const cleaned = phone.replace(/\D/g, '');
+  // Remove all non-digits except +
+  const cleaned = phone.replace(/[^\d+]/g, '');
 
-  // Format based on length
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  // Handle +91 numbers (Indian standard)
+  if (cleaned.startsWith('+91')) {
+    const raw = cleaned.slice(3);
+    if (raw.length === 10) {
+      return `+91 ${raw.slice(0, 5)} ${raw.slice(5)}`;
+    }
+    return cleaned;
   }
 
-  // Return original if can't format
+  // Handle 10-digit numbers (assume Indian/local if no prefix)
+  if (cleaned.length === 10 && !cleaned.startsWith('+')) {
+    return `${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
+  }
+
+  // Handle 11-digit numbers starting with 91
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    return `+91 ${cleaned.slice(2, 7)} ${cleaned.slice(7)}`;
+  }
+
+  // Return original if no specific rule matches
   return phone;
 }
 
@@ -271,4 +282,64 @@ export function getGreeting(): string {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+/**
+ * Extracts an Instagram username from a profile URL or pattern.
+ * Examples:
+ * - https://www.instagram.com/sanaa.nasrin?igsh=... -> sanaa.nasrin
+ * - instagram.com/sanaa.nasrin -> sanaa.nasrin
+ * - @sanaa.nasrin -> sanaa.nasrin
+ */
+export function extractInstagramUsername(input: string): string {
+  if (!input) return '';
+
+  let username = input.trim();
+
+  // Remove URL prefix if present
+  try {
+    if (username.toLowerCase().includes('instagram.com')) {
+      // Handle URLs like https://www.instagram.com/username...
+      const url = username.startsWith('http') ? username : `https://${username}`;
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 0) {
+        // Special case for instagram.com/reels/..., instagram.com/p/..., etc.
+        const servicePaths = [
+          'reels',
+          'p',
+          'stories',
+          'explore',
+          'direct',
+          'share',
+          'profile',
+        ];
+        if (
+          servicePaths.includes(pathParts[0].toLowerCase()) &&
+          pathParts.length > 1
+        ) {
+          username = pathParts[1];
+        } else {
+          username = pathParts[0];
+        }
+      }
+    }
+  } catch (e) {
+    // If URL parsing fails, fallback to regex
+    const match = username.match(/instagram\.com\/([^/ ?#&]+)/i);
+    if (match && match[1]) {
+      username = match[1];
+    }
+  }
+
+  // Remove @ if present
+  if (username.startsWith('@')) {
+    username = username.substring(1);
+  }
+
+  // Remove any remaining query params if they weren't caught by URL parser
+  // and handle trailing slashes
+  username = username.split('?')[0].split('/')[0];
+
+  return username;
 }
