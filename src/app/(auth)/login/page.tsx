@@ -153,9 +153,9 @@ function LoginForm() {
             <Target className="w-8 h-8 text-primary" />
           </div>
 
-          <CardTitle className="text-3xl font-bold text-foreground tracking-tight">
-            Agency CRM
-          </CardTitle>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Welcome to Ekodrix CRM
+          </h1>
 
           <CardDescription className="text-muted-foreground mt-2 text-base">
             {showResetForm

@@ -37,6 +37,7 @@ import {
   ChevronRight,
   Building,
   Calendar,
+  Instagram,
 } from 'lucide-react';
 import {
   cn,
@@ -181,6 +182,12 @@ export function LeadTable({
                           <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                             <Building className="w-3 h-3" />
                             {lead.company_name}
+                          </p>
+                        )}
+                        {lead.instagram_handle && (
+                          <p className="text-[10px] text-pink-500 truncate flex items-center gap-1 mt-0.5">
+                            <Instagram className="w-2.5 h-2.5" />
+                            @{lead.instagram_handle}
                           </p>
                         )}
                       </div>

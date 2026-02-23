@@ -134,8 +134,8 @@ export function Sidebar() {
               </div>
               {!collapsed && (
                 <div className="flex flex-col">
-                  <span className="font-bold text-lg leading-tight text-foreground">Agency CRM</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">
+                  <span className="font-bold text-lg leading-none">Ekodrix CRM</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                     Lead Management
                   </span>
                 </div>
