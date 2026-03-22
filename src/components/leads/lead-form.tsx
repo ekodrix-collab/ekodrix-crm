@@ -147,25 +147,48 @@ export function LeadForm({ initialData, isEdit = false }: LeadFormProps) {
             const url = isEdit ? `/api/leads/${initialData?.id}` : '/api/leads';
             const method = isEdit ? 'PUT' : 'POST';
 
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
+            // Use a timeout for the fetch call to prevent infinite loading
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-            const result = await response.json();
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                    signal: controller.signal,
+                });
 
-            if (!response.ok) {
-                throw new Error(result.error || `Failed to ${isEdit ? 'update' : 'create'} lead`);
+                clearTimeout(timeoutId);
+
+                // Handle non-OK responses gracefully
+                if (!response.ok) {
+                    const result = await response.json().catch(() => ({ error: `Failed to ${isEdit ? 'update' : 'create'} lead` }));
+                    throw new Error(result.error || `Failed to ${isEdit ? 'update' : 'create'} lead`);
+                }
+
+                const result = await response.json();
+
+                toast({
+                    title: `Lead ${isEdit ? 'Updated' : 'Created'}`,
+                    description: `${data.name} has been ${isEdit ? 'updated' : 'added'} successfully.`,
+                });
+
+                if (!isEdit && result.data?.id) {
+                    router.push(`/leads/${result.data.id}`);
+                } else if (isEdit && initialData?.id) {
+                    router.push(`/leads/${initialData.id}`);
+                } else {
+                    router.push('/leads');
+                }
+                
+                router.refresh();
+            } catch (err: any) {
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. Please check your connection and try again.');
+                }
+                throw err;
             }
-
-            toast({
-                title: `Lead ${isEdit ? 'Updated' : 'Created'}`,
-                description: `${data.name} has been ${isEdit ? 'updated' : 'added'} successfully.`,
-            });
-
-            router.push(`/leads/${isEdit ? initialData?.id : result.data.id}`);
-            router.refresh();
         } catch (error) {
             console.error(`Error ${isEdit ? 'updating' : 'creating'} lead:`, error);
             const errorMessage = error instanceof Error ? error.message : `Failed to ${isEdit ? 'update' : 'create'} lead`;

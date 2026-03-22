@@ -158,17 +158,24 @@ export function useDuplicateCheck() {
 
       setChecking(true);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       try {
         const response = await fetch('/api/leads/check-duplicate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
+          signal: controller.signal,
         });
 
-        const result = await response.json();
+        clearTimeout(timeoutId);
+
+        const result = await response.json().catch(() => ({ isDuplicate: false, error: 'Failed to check duplicates' }));
         setDuplicate(result);
         return result;
-      } catch (error) {
+      } catch (error: any) {
+        clearTimeout(timeoutId);
         console.error('Error checking duplicate:', error);
         setDuplicate(null);
         return null;

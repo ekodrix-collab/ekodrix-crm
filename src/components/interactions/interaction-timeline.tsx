@@ -17,7 +17,16 @@ import {
   Minus,
   Clock,
   ArrowRight,
+  MoreVertical,
+  Edit,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import {
   cn,
   formatDateTime,
@@ -31,6 +40,7 @@ import type { Interaction } from '@/types';
 interface InteractionTimelineProps {
   interactions: Interaction[];
   maxItems?: number;
+  onEdit?: (interaction: Interaction) => void;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -57,6 +67,7 @@ const outcomeIcons: Record<string, React.ReactNode> = {
 export function InteractionTimeline({
   interactions,
   maxItems,
+  onEdit,
 }: InteractionTimelineProps) {
   const displayInteractions = maxItems
     ? interactions.slice(0, maxItems)
@@ -106,7 +117,7 @@ export function InteractionTimeline({
             <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
               {/* Header */}
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <span className="font-medium text-sm">
                     {typeConfig?.label || interaction.type}
                   </span>
@@ -121,10 +132,25 @@ export function InteractionTimeline({
                       <span className={outcomeConfig.color}>{outcomeConfig.label}</span>
                     </span>
                   )}
+                  <span className="text-xs text-slate-500 ml-auto mr-1">
+                    {formatRelativeTime(interaction.created_at)}
+                  </span>
                 </div>
-                <span className="text-xs text-slate-500">
-                  {formatRelativeTime(interaction.created_at)}
-                </span>
+                {onEdit && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEdit(interaction)}>
+                        <Edit className="w-3.5 h-3.5 mr-2" />
+                        Edit Log
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
               {/* Summary */}

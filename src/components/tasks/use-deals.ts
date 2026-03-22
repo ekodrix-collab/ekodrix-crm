@@ -94,6 +94,9 @@ export function useDeals(options: UseDealsOptions = {}) {
   // Update deal stage
   const updateDealStage = useCallback(
     async (dealId: string, newStage: string, lostReason?: string): Promise<boolean> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       try {
         const updateData: Partial<Deal> = { stage: newStage as any };
 
@@ -105,7 +108,10 @@ export function useDeals(options: UseDealsOptions = {}) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updateData),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error('Failed to update deal');
@@ -115,21 +121,28 @@ export function useDeals(options: UseDealsOptions = {}) {
         queryClient.invalidateQueries({ queryKey: ['deals'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
+        clearTimeout(timeoutId);
         console.error('Error updating deal stage:', err);
         return false;
       }
     },
-    []
+    [queryClient]
   );
 
   // Delete deal
   const deleteDeal = useCallback(
     async (dealId: string): Promise<boolean> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       try {
         const response = await fetch(`/api/deals/${dealId}`, {
           method: 'DELETE',
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error('Failed to delete deal');
@@ -139,12 +152,13 @@ export function useDeals(options: UseDealsOptions = {}) {
         queryClient.invalidateQueries({ queryKey: ['deals'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
+        clearTimeout(timeoutId);
         console.error('Error deleting deal:', err);
         return false;
       }
     },
-    []
+    [queryClient]
   );
 
   return {

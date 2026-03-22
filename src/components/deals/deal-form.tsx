@@ -86,23 +86,37 @@ export function DealForm({
   const onSubmit = async (data: DealFormValues) => {
     setIsSubmitting(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     try {
       const response = await fetch('/api/deals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Failed to create deal');
       }
 
       const { data: deal } = await response.json();
       onSuccess(deal);
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error('Error creating deal:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create deal';
+      
+      let errorMessage = 'Failed to create deal';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: 'Error',
         description: errorMessage,

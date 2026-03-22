@@ -54,9 +54,6 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if exists
-  const { data: { user } } = await supabase.auth.getUser();
-
   // Define route types
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
@@ -64,10 +61,14 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/manifest') ||
     request.nextUrl.pathname === '/favicon.ico';
 
-  // Allow public files and API routes
+  // Allow public files and API routes to bypass redundant middleware auth
+  // API routes perform their own auth check via createServerClient
   if (isApiRoute || isPublicFile) {
     return response;
   }
+
+  // Refresh session if exists
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Redirect to login if not authenticated and trying to access protected route
   if (!user && !isAuthPage) {

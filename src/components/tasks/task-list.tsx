@@ -23,6 +23,7 @@ import {
   User,
   Loader2,
   Trash2,
+  Edit,
 } from 'lucide-react';
 import { cn, formatDate, isOverdue, isDueToday } from '@/lib/utils';
 import { TASK_TYPES, TASK_STATUSES } from '@/lib/constants';
@@ -32,6 +33,7 @@ interface TaskListProps {
   tasks: Task[];
   compact?: boolean;
   onTaskUpdated?: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
 }
 
 const taskIcons: Record<string, React.ReactNode> = {
@@ -44,7 +46,12 @@ const taskIcons: Record<string, React.ReactNode> = {
   other: <CheckSquare className="w-4 h-4" />,
 };
 
-export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProps) {
+export function TaskList({ 
+  tasks, 
+  compact = false, 
+  onTaskUpdated,
+  onEditTask,
+}: TaskListProps) {
   const { toast } = useToast();
   const supabase = createClient();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -57,20 +64,29 @@ export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProp
   const handleToggleComplete = async (task: Task) => {
     setUpdatingId(task.id);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     try {
       const newStatus = task.status === 'completed' ? 'pending' : 'completed';
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           status: newStatus,
-          completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-        })
-        .eq('id', task.id)
-        .select()
-        .single();
+        }),
+        signal: controller.signal,
+      });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with ${response.status}`);
+      }
+
+      const { data } = await response.json();
 
       toast({
         title: newStatus === 'completed' ? 'Task Completed' : 'Task Reopened',
@@ -80,12 +96,21 @@ export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProp
       if (onTaskUpdated && data) {
         onTaskUpdated(data);
       }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update task',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        toast({
+          title: 'Request Timed Out',
+          description: 'The server took too long to respond. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
+        console.error('Error toggling task:', error);
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to update task',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setUpdatingId(null);
     }
@@ -95,10 +120,21 @@ export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProp
   const handleDeleteTask = async (taskId: string) => {
     setUpdatingId(taskId);
 
-    try {
-      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      if (error) throw error;
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with ${response.status}`);
+      }
 
       toast({
         title: 'Task Deleted',
@@ -109,12 +145,21 @@ export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProp
       if (onTaskUpdated) {
         onTaskUpdated({ id: taskId, status: 'deleted' } as any as Task);
       }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete task',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        toast({
+          title: 'Request Timed Out',
+          description: 'The server took too long to respond. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
+        console.error('Error deleting task:', error);
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to delete task',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setUpdatingId(null);
     }
@@ -224,6 +269,12 @@ export function TaskList({ tasks, compact = false, onTaskUpdated }: TaskListProp
               <CheckSquare className="w-4 h-4 mr-2" />
               {isCompleted ? 'Reopen' : 'Complete'}
             </DropdownMenuItem>
+            {onEditTask && (
+              <DropdownMenuItem onClick={() => onEditTask(task)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Task
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => handleDeleteTask(task.id)}
               className="text-red-600"

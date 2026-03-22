@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/hooks/use-user';
 import { taskSchema, type TaskFormValues } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ interface TaskFormProps {
 
 export function TaskForm({ leadId, users, task, onSuccess, onCancel }: TaskFormProps) {
   const { toast } = useToast();
+  const { user } = useUser();
   const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,8 +61,6 @@ export function TaskForm({ leadId, users, task, onSuccess, onCancel }: TaskFormP
     setIsSubmitting(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         throw new Error('Not authenticated');
       }
@@ -78,44 +78,34 @@ export function TaskForm({ leadId, users, task, onSuccess, onCancel }: TaskFormP
         status: 'pending',
       };
 
-      let result;
+      // Consistently use the server-side API for task operations
+      // to avoid direct supabase calls and handle auth more reliably
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      if (task) {
-        // Update existing task
-        const { data, error } = await supabase
-          .from('tasks')
-          .update(taskData)
-          .eq('id', task.id)
-          .select(
-            `
-            *,
-            assigned_user:users!assigned_to(id, name),
-            lead:leads(id, name, phone, company_name, status, priority)
-          `
-          )
-          .single();
+      try {
+        const response = await fetch(task ? `/api/tasks/${task.id}` : '/api/tasks', {
+          method: task ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(taskData),
+          signal: controller.signal,
+        });
 
-        if (error) throw error;
-        result = data;
-      } else {
-        // Create new task
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert([taskData])
-          .select(
-            `
-            *,
-            assigned_user:users!assigned_to(id, name),
-            lead:leads(id, name, phone, company_name, status, priority)
-          `
-          )
-          .single();
+        clearTimeout(timeoutId);
 
-        if (error) throw error;
-        result = data;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server responded with ${response.status}`);
+        }
+
+        const { data: updatedTask } = await response.json();
+        onSuccess(updatedTask);
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your connection and try again.');
+        }
+        throw err;
       }
-
-      onSuccess(result);
     } catch (error) {
       console.error('Error creating task:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
