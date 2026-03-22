@@ -106,100 +106,135 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
   // Complete a task
   const completeTask = useCallback(
     async (taskId: string): Promise<boolean> => {
-      try {
-        const { error } = await supabase
-          .from('tasks')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', taskId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        if (error) throw error;
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'completed',
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
 
         // Invalidate queries to refetch
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         queryClient.invalidateQueries({ queryKey: ['task-stats'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error completing task:', err);
         return false;
       }
     },
-    [supabase]
+    [queryClient]
   );
 
   // Reopen a task
   const reopenTask = useCallback(
     async (taskId: string): Promise<boolean> => {
-      try {
-        const { error } = await supabase
-          .from('tasks')
-          .update({
-            status: 'pending',
-            completed_at: null,
-          })
-          .eq('id', taskId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        if (error) throw error;
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'pending',
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
 
         // Invalidate queries to refetch
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         queryClient.invalidateQueries({ queryKey: ['task-stats'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error reopening task:', err);
         return false;
       }
     },
-    [supabase]
+    [queryClient]
   );
 
   // Delete a task
   const deleteTask = useCallback(
     async (taskId: string): Promise<boolean> => {
-      try {
-        const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        if (error) throw error;
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'DELETE',
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
 
         // Invalidate queries to refetch
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         queryClient.invalidateQueries({ queryKey: ['task-stats'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error deleting task:', err);
         return false;
       }
     },
-    [supabase]
+    [queryClient]
   );
 
   // Update a task
   const updateTask = useCallback(
     async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
-      try {
-        const { error } = await supabase
-          .from('tasks')
-          .update(updates)
-          .eq('id', taskId);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        if (error) throw error;
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
 
         // Invalidate queries to refetch
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         queryClient.invalidateQueries({ queryKey: ['task-stats'] });
 
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error updating task:', err);
         return false;
       }
     },
-    [supabase]
+    [queryClient]
   );
 
   return {

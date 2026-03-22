@@ -16,17 +16,30 @@ export function useMeetings(filters: MeetingsFilters = {}) {
     return useQuery({
         queryKey: ['meetings', filters],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (filters.status) params.append('status', filters.status);
-            if (filters.date_from) params.append('date_from', filters.date_from);
-            if (filters.date_to) params.append('date_to', filters.date_to);
-            if (filters.organizer_id) params.append('organizer_id', filters.organizer_id);
-            if (filters.view) params.append('view', filters.view);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-            const response = await fetch(`/api/meetings?${params.toString()}`);
-            if (!response.ok) throw new Error('Failed to fetch meetings');
-            const data = await response.json();
-            return data.data as Meeting[];
+            try {
+                const params = new URLSearchParams();
+                if (filters.status) params.append('status', filters.status);
+                if (filters.date_from) params.append('date_from', filters.date_from);
+                if (filters.date_to) params.append('date_to', filters.date_to);
+                if (filters.organizer_id) params.append('organizer_id', filters.organizer_id);
+                if (filters.view) params.append('view', filters.view);
+
+                const response = await fetch(`/api/meetings?${params.toString()}`, {
+                    signal: controller.signal,
+                });
+                
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error('Failed to fetch meetings');
+                const data = await response.json();
+                return data.data as Meeting[];
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
         },
     });
 }
@@ -36,10 +49,23 @@ export function useMeeting(id: string | null) {
         queryKey: ['meetings', id],
         queryFn: async () => {
             if (!id) return null;
-            const response = await fetch(`/api/meetings/${id}`);
-            if (!response.ok) throw new Error('Failed to fetch meeting');
-            const data = await response.json();
-            return data.data as Meeting;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch(`/api/meetings/${id}`, {
+                    signal: controller.signal,
+                });
+                
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error('Failed to fetch meeting');
+                const data = await response.json();
+                return data.data as Meeting;
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
         },
         enabled: !!id,
     });
@@ -51,16 +77,31 @@ export function useCreateMeeting() {
 
     return useMutation({
         mutationFn: async (data: MeetingFormData) => {
-            const response = await fetch('/api/meetings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to create meeting');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch('/api/meetings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to create meeting');
+                }
+                return response.json();
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. Please try again.');
+                }
+                throw err;
             }
-            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -85,16 +126,31 @@ export function useUpdateMeeting(id: string) {
 
     return useMutation({
         mutationFn: async (data: Partial<MeetingFormData> & { status?: string }) => {
-            const response = await fetch(`/api/meetings/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to update meeting');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch(`/api/meetings/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to update meeting');
+                }
+                return response.json();
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. Please try again.');
+                }
+                throw err;
             }
-            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -119,14 +175,29 @@ export function useDeleteMeeting() {
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const response = await fetch(`/api/meetings/${id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to delete meeting');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch(`/api/meetings/${id}`, {
+                    method: 'DELETE',
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to delete meeting');
+                }
+                return response.json();
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. Please try again.');
+                }
+                throw err;
             }
-            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -151,16 +222,31 @@ export function useRSVP(meetingId: string) {
 
     return useMutation({
         mutationFn: async (rsvp_status: RSVPStatus) => {
-            const response = await fetch(`/api/meetings/${meetingId}/rsvp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rsvp_status }),
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to update RSVP');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch(`/api/meetings/${meetingId}/rsvp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rsvp_status }),
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to update RSVP');
+                }
+                return response.json();
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out. Please try again.');
+                }
+                throw err;
             }
-            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });

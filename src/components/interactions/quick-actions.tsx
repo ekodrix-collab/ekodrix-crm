@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/hooks/use-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +35,7 @@ type QuickActionType = 'call' | 'whatsapp' | 'email';
 
 export function QuickActions({ lead, onInteractionLogged }: QuickActionsProps) {
   const { toast } = useToast();
+  const { user } = useUser();
   const supabase = createClient();
 
   const [showQuickLog, setShowQuickLog] = useState(false);
@@ -83,8 +85,6 @@ export function QuickActions({ lead, onInteractionLogged }: QuickActionsProps) {
     setIsLogging(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         throw new Error('Not authenticated');
       }
@@ -116,13 +116,18 @@ export function QuickActions({ lead, onInteractionLogged }: QuickActionsProps) {
       if (error) throw error;
 
       // Update lead's last_contacted_at
-      await fetch(`/api/leads/${lead.id}`, {
+      const leadUpdateResponse = await fetch(`/api/leads/${lead.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           last_contacted_at: new Date().toISOString(),
         }),
       });
+
+      if (!leadUpdateResponse.ok) {
+        const errorData = await leadUpdateResponse.json().catch(() => ({}));
+        console.warn('Failed to update lead status, but interaction was recorded:', errorData.error);
+      }
 
       toast({
         title: 'Interaction Logged',
@@ -137,9 +142,10 @@ export function QuickActions({ lead, onInteractionLogged }: QuickActionsProps) {
       }
     } catch (error) {
       console.error('Error logging interaction:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to log interaction';
       toast({
         title: 'Error',
-        description: 'Failed to log interaction',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

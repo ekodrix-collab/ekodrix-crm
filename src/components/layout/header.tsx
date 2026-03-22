@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from './user-menu';
+import { useUser } from '@/hooks/use-user';
 import {
   Search,
   Bell,
@@ -36,6 +37,7 @@ interface SearchResult {
 
 export function Header() {
   const router = useRouter();
+  const { user } = useUser();
   const supabase = createClient();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,7 +122,6 @@ export function Header() {
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data, error } = await supabase
@@ -134,7 +135,7 @@ export function Header() {
       setNotifications(data);
       setUnreadCount(data.filter((n) => !n.read).length);
     }
-  }, [supabase]);
+  }, [supabase, user]);
 
   useEffect(() => {
     fetchNotifications();
@@ -182,7 +183,6 @@ export function Header() {
 
   const markAllAsRead = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { error } = await supabase

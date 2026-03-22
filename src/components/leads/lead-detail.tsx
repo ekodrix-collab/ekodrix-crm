@@ -100,6 +100,8 @@ export function LeadDetailView({
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [editingInteraction, setEditingInteraction] = useState<Interaction | undefined>(undefined);
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
 
   // Sync with props when they change
   useEffect(() => {
@@ -108,22 +110,56 @@ export function LeadDetailView({
     setTasks(initialTasks);
   }, [initialLead, initialInteractions, initialTasks]);
 
-  const handleInteractionAdded = () => {
+  const handleInteractionAdded = (newInteraction: Interaction) => {
+    setInteractions(prev => {
+      const exists = prev.find(i => i.id === newInteraction.id);
+      if (exists) {
+        return prev.map(i => i.id === newInteraction.id ? newInteraction : i);
+      }
+      return [newInteraction, ...prev];
+    });
     setShowInteractionDialog(false);
+    setEditingInteraction(undefined);
     toast({
-      title: 'Interaction Logged',
+      title: editingInteraction ? 'Log Updated' : 'Interaction Logged',
       description: 'The interaction has been successfully recorded.',
     });
     router.refresh();
   };
 
-  const handleTaskAdded = () => {
+  const handleTaskAdded = (newTask: Task) => {
+    setTasks(prev => {
+      const exists = prev.find(t => t.id === newTask.id);
+      if (exists) {
+        return prev.map(t => t.id === newTask.id ? newTask : t);
+      }
+      return [newTask, ...prev];
+    });
     setShowTaskDialog(false);
+    setEditingTask(undefined);
     toast({
-      title: 'Task Created',
-      description: 'The follow-up task has been successfully created.',
+      title: editingTask ? 'Task Updated' : 'Task Created',
+      description: 'The follow-up task has been successfully saved.',
     });
     router.refresh();
+  };
+
+  const handleTaskUpdated = (updatedTask: Task) => {
+    if (updatedTask.status as string === 'deleted') {
+      setTasks(prevTasks => prevTasks.filter((t) => t.id !== updatedTask.id));
+    } else {
+      setTasks(prevTasks => prevTasks.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+    }
+  };
+
+  const handleEditInteraction = (interaction: Interaction) => {
+    setEditingInteraction(interaction);
+    setShowInteractionDialog(true);
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setShowTaskDialog(true);
   };
 
   const statusConfig = LEAD_STATUSES[lead.status] || LEAD_STATUSES.new;
@@ -395,7 +431,10 @@ export function LeadDetailView({
                     <MessageSquare className="w-5 h-5 text-blue-500" />
                     Interactions ({interactions.length})
                   </CardTitle>
-                  <Dialog open={showInteractionDialog} onOpenChange={setShowInteractionDialog}>
+                  <Dialog open={showInteractionDialog} onOpenChange={(open) => {
+                    setShowInteractionDialog(open);
+                    if (!open) setEditingInteraction(undefined);
+                  }}>
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
@@ -404,23 +443,30 @@ export function LeadDetailView({
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Log Interaction</DialogTitle>
+                        <DialogTitle>{editingInteraction ? 'Edit Log' : 'Log Interaction'}</DialogTitle>
                         <DialogDescription>
-                          Record a call, message, or note for {lead.name}
+                          {editingInteraction ? 'Update the details for this log entry' : `Record a call, message, or note for ${lead.name}`}
                         </DialogDescription>
                       </DialogHeader>
                       <InteractionForm
                         leadId={lead.id}
                         currentStatus={lead.status}
+                        initialData={editingInteraction}
                         onSuccess={handleInteractionAdded}
-                        onCancel={() => setShowInteractionDialog(false)}
+                        onCancel={() => {
+                          setShowInteractionDialog(false);
+                          setEditingInteraction(undefined);
+                        }}
                       />
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
                 <CardContent>
                   <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-                    <InteractionTimeline interactions={interactions} />
+                    <InteractionTimeline 
+                      interactions={interactions} 
+                      onEdit={handleEditInteraction}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -434,7 +480,10 @@ export function LeadDetailView({
                     <CheckCircle2 className="w-5 h-5 text-green-500" />
                     Follow-up Tasks ({tasks.length})
                   </CardTitle>
-                  <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
+                  <Dialog open={showTaskDialog} onOpenChange={(open) => {
+                    setShowTaskDialog(open);
+                    if (!open) setEditingTask(undefined);
+                  }}>
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
@@ -443,23 +492,31 @@ export function LeadDetailView({
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Create Task</DialogTitle>
+                        <DialogTitle>{editingTask ? 'Edit Task' : 'Create Task'}</DialogTitle>
                         <DialogDescription>
-                          Assign a follow-up action for {lead.name}
+                          {editingTask ? 'Update the details for this follow-up action' : `Assign a follow-up action for ${lead.name}`}
                         </DialogDescription>
                       </DialogHeader>
                       <TaskForm
                         leadId={lead.id}
                         users={initialUsers}
+                        task={editingTask}
                         onSuccess={handleTaskAdded}
-                        onCancel={() => setShowTaskDialog(false)}
+                        onCancel={() => {
+                          setShowTaskDialog(false);
+                          setEditingTask(undefined);
+                        }}
                       />
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
                 <CardContent>
                   <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-                    <TaskList tasks={tasks} />
+                    <TaskList 
+                      tasks={tasks} 
+                      onTaskUpdated={handleTaskUpdated}
+                      onEditTask={handleEditTask}
+                    />
                   </div>
                 </CardContent>
               </Card>

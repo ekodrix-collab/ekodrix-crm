@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/hooks/use-user';
 import { interactionSchema, type InteractionFormValues } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ import type { Interaction, LeadStatus, Lead } from '@/types';
 interface InteractionFormProps {
   leadId: string;
   currentStatus: LeadStatus;
+  initialData?: Interaction;
   onSuccess: (interaction: Interaction) => void;
   onCancel: () => void;
 }
@@ -64,10 +66,12 @@ const typeIcons: Record<string, React.ReactNode> = {
 export function InteractionForm({
   leadId,
   currentStatus,
+  initialData,
   onSuccess,
   onCancel,
 }: InteractionFormProps) {
   const { toast } = useToast();
+  const { user } = useUser();
   const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,12 +79,12 @@ export function InteractionForm({
     resolver: zodResolver(interactionSchema) as Resolver<InteractionFormValues>,
     defaultValues: {
       lead_id: leadId,
-      type: 'call',
-      direction: 'outbound',
-      summary: '',
-      outcome: undefined,
-      call_duration: undefined,
-      new_status: undefined,
+      type: initialData?.type || 'call',
+      direction: initialData?.direction || 'outbound',
+      summary: initialData?.summary || '',
+      outcome: initialData?.outcome || undefined,
+      call_duration: initialData?.call_duration || undefined,
+      new_status: initialData?.status_after || undefined,
       schedule_follow_up: false,
       follow_up_date: '',
     },
@@ -93,76 +97,55 @@ export function InteractionForm({
     setIsSubmitting(true);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         throw new Error('Not authenticated');
       }
 
-      // Create interaction
-      const interactionData = {
-        lead_id: data.lead_id,
-        user_id: user.id,
-        type: data.type,
-        direction: data.direction,
-        summary: data.summary,
-        outcome: data.outcome,
-        call_duration: data.call_duration,
-        status_before: currentStatus,
-        status_after: data.new_status || currentStatus,
-      };
+      // Consistently use the server-side API for all operations
+      // to reduce network calls and prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      const { data: interaction, error: interactionError } = await supabase
-        .from('interactions')
-        .insert([interactionData])
-        .select(
-          `
-          *,
-          user:users!user_id(id, name, avatar_url)
-        `
-        )
-        .single();
+      try {
+        const url = initialData 
+          ? `/api/interactions/${initialData.id}` 
+          : '/api/interactions';
+        
+        const method = initialData ? 'PUT' : 'POST';
 
-      if (interactionError) {
-        throw interactionError;
-      }
-
-      // Update lead if status changed or follow-up scheduled
-      const leadUpdates: Partial<Lead> = {
-        last_contacted_at: new Date().toISOString(),
-      };
-
-      if (data.new_status && data.new_status !== currentStatus) {
-        leadUpdates.status = data.new_status;
-      }
-
-      if (data.schedule_follow_up && data.follow_up_date) {
-        leadUpdates.next_follow_up_date = data.follow_up_date;
-      }
-
-      await fetch(`/api/leads/${leadId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(leadUpdates),
-      });
-
-      // Create follow-up task if scheduled
-      if (data.schedule_follow_up && data.follow_up_date) {
-        await supabase.from('tasks').insert([
-          {
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             lead_id: leadId,
-            assigned_to: user.id,
-            created_by: user.id,
-            type: 'follow_up_call',
-            title: `Follow up: ${data.summary.substring(0, 50)}...`,
-            due_date: data.follow_up_date,
-            priority: 'medium',
-          },
-        ]);
-      }
+            type: data.type,
+            direction: data.direction,
+            summary: data.summary,
+            outcome: data.outcome,
+            call_duration: data.call_duration,
+            status_before: initialData?.status_before || currentStatus,
+            status_after: data.new_status !== currentStatus ? data.new_status : null,
+            next_follow_up_date: data.follow_up_date,
+            create_task: data.schedule_follow_up,
+          }),
+          signal: controller.signal,
+        });
 
-      onSuccess(interaction);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server responded with ${response.status}`);
+        }
+
+        const { data: interaction } = await response.json();
+        onSuccess(interaction);
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your connection and try again.');
+        }
+        throw err;
+      }
     } catch (error) {
       console.error('Error recording interaction:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to record interaction';
@@ -365,7 +348,7 @@ export function InteractionForm({
                 Saving...
               </>
             ) : (
-              'Log Interaction'
+              initialData ? 'Update Log' : 'Log Interaction'
             )}
           </Button>
         </div>
