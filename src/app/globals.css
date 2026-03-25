@@ -73,6 +73,17 @@
     scroll-behavior: smooth;
   }
 
+  /* Hide number input spinners (up/down arrows) globally */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
   /* Hide scrollbar but allow scrolling */
   .no-scrollbar {
     -ms-overflow-style: none;
