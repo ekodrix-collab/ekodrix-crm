@@ -282,6 +282,21 @@ export function LeadDetailView({
               <Separator />
 
               <div className="space-y-1">
+                <p className="text-xs text-slate-500 uppercase font-semibold">Location</p>
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    <p className="text-sm">
+                      {lead.country}
+                      {lead.city ? `, ${lead.city}` : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
                 <p className="text-xs text-slate-500 uppercase font-semibold">Social Media</p>
                 <div className="flex gap-2 pt-2">
                   {lead.instagram_handle && (

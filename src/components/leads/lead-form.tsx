@@ -45,7 +45,8 @@ import {
     Clock,
 } from 'lucide-react';
 import { debounce, extractInstagramUsername } from '@/lib/utils';
-import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES } from '@/lib/constants';
+import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES, COUNTRIES, COUNTRY_CODE_MAP } from '@/lib/constants';
+import ReactCountryFlag from 'react-country-flag';
 import type { User as UserType, Lead } from '@/types';
 
 interface LeadFormProps {
@@ -88,6 +89,8 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
             assigned_to: initialData?.assigned_to || '',
             priority: (initialData?.priority as any) || 'warm',
             tags: initialData?.tags || [],
+            country: initialData?.country || '',
+            city: initialData?.city || '',
         },
     });
 
@@ -358,6 +361,69 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                                         <FormLabel>Designation</FormLabel>
                                         <FormControl>
                                             <Input placeholder="CEO / Manager" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Location Information */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-indigo-500" />
+                                Location
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="country"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Country *</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select country" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {COUNTRIES.map(({ value, label }) => (
+                                                    <SelectItem key={value} value={value}>
+                                                        <div className="flex items-center gap-2">
+                                                            <ReactCountryFlag
+                                                                countryCode={COUNTRY_CODE_MAP[value]}
+                                                                svg
+                                                                style={{
+                                                                    width: '1.2em',
+                                                                    height: '1.2em',
+                                                                }}
+                                                            />
+                                                            <span>{label}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="city"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>City</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Dubai / Kochi / etc." {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

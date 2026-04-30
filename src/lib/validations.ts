@@ -121,6 +121,18 @@ export const leadSchema = z.object({
   tags: z
     .array(z.string())
     .optional(),
+
+  country: z
+    .string({
+      required_error: 'Please select a country',
+    })
+    .min(1, 'Please select a country'),
+
+  city: z
+    .string()
+    .max(100, 'City name must be less than 100 characters')
+    .optional()
+    .or(z.literal('')),
 });
 
 export type LeadFormValues = z.infer<typeof leadSchema>;
