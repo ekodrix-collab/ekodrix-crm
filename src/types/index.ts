@@ -98,6 +98,10 @@ export interface Lead {
   updated_at: string;
   created_by?: string | null;
 
+  // Location
+  country: string;
+  city?: string | null;
+
   // Joined fields (from relations)
   assigned_user?: User | null;
   created_by_user?: User | null;
@@ -126,6 +130,8 @@ export interface LeadFormData {
   assigned_to?: string;
   priority?: LeadPriority;
   tags?: string[];
+  country: string;
+  city?: string;
 }
 
 // ==========================================

@@ -443,6 +443,36 @@ export const PROJECT_TYPES = [
   { value: 'other', label: 'Other', icon: 'MoreHorizontal' },
 ] as const;
 
+// Country Options
+export const COUNTRIES = [
+  { label: 'Saudi Arabia', value: 'SA' },
+  { label: 'United Arab Emirates', value: 'AE' },
+  { label: 'Qatar', value: 'QA' },
+  { label: 'Kuwait', value: 'KW' },
+  { label: 'Bahrain', value: 'BH' },
+  { label: 'Oman', value: 'OM' },
+] as const;
+
+// Country Code Mapping (for flags)
+export const COUNTRY_CODE_MAP: Record<string, string> = {
+  'SA': 'SA',
+  'AE': 'AE',
+  'QA': 'QA',
+  'KW': 'KW',
+  'BH': 'BH',
+  'OM': 'OM',
+};
+
+// Country Name Mapping (for display)
+export const COUNTRY_NAME_MAP: Record<string, string> = {
+  'SA': 'Saudi Arabia',
+  'AE': 'United Arab Emirates',
+  'QA': 'Qatar',
+  'KW': 'Kuwait',
+  'BH': 'Bahrain',
+  'OM': 'Oman',
+};
+
 // Timeline Options
 export const TIMELINE_OPTIONS = [
   { value: 'urgent', label: 'Urgent (ASAP)', days: 7 },

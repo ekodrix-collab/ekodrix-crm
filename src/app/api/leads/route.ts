@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
       timeline: body.timeline || null,
       requirements: body.requirements || null,
       tags: body.tags || [],
+      country: body.country,
+      city: body.city || null,
       created_by: user.id,
     };
 

@@ -51,7 +51,8 @@ import {
   openPhoneDialer,
   openEmailClient,
 } from '@/lib/utils';
-import { PRIORITIES } from '@/lib/constants';
+import { PRIORITIES, COUNTRY_CODE_MAP } from '@/lib/constants';
+import ReactCountryFlag from 'react-country-flag';
 import type { Lead } from '@/types';
 
 interface LeadTableProps {
@@ -135,6 +136,7 @@ export function LeadTable({
                   />
                 </TableHead>
                 <TableHead>Lead</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
@@ -196,6 +198,28 @@ export function LeadTable({
                         )}
                       </div>
                     </div>
+                    </TableCell>
+
+                  {/* Location */}
+                  <TableCell>
+                    {lead.country && COUNTRY_CODE_MAP[lead.country] ? (
+                      <div className="flex items-center gap-2">
+                        <ReactCountryFlag
+                          countryCode={COUNTRY_CODE_MAP[lead.country]}
+                          svg
+                          style={{
+                            width: '1.2em',
+                            height: '1.2em',
+                          }}
+                          title={COUNTRY_CODE_MAP[lead.country]}
+                        />
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {COUNTRY_CODE_MAP[lead.country]}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/60">N/A</span>
+                    )}
                   </TableCell>
 
                   {/* Contact */}
