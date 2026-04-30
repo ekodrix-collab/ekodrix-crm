@@ -113,26 +113,20 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
   // Remove all non-digits except +
   const cleaned = phone.replace(/[^\d+]/g, '');
 
-  // Handle +91 numbers (Indian standard)
-  if (cleaned.startsWith('+91')) {
-    const raw = cleaned.slice(3);
-    if (raw.length === 10) {
-      return `+91 ${raw.slice(0, 5)} ${raw.slice(5)}`;
+  // If it starts with +, try to format it simply
+  if (cleaned.startsWith('+')) {
+    // For +91 10-digit numbers, keep the spacing
+    if (cleaned.startsWith('+91') && cleaned.length === 13) {
+      return `+91 ${cleaned.slice(3, 8)} ${cleaned.slice(8)}`;
     }
     return cleaned;
   }
 
-  // Handle 10-digit numbers (assume Indian/local if no prefix)
-  if (cleaned.length === 10 && !cleaned.startsWith('+')) {
+  // Handle 10-digit numbers (assume local)
+  if (cleaned.length === 10) {
     return `${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
   }
 
-  // Handle 11-digit numbers starting with 91
-  if (cleaned.length === 12 && cleaned.startsWith('91')) {
-    return `+91 ${cleaned.slice(2, 7)} ${cleaned.slice(7)}`;
-  }
-
-  // Return original if no specific rule matches
   return phone;
 }
 

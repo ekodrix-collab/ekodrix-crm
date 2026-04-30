@@ -154,7 +154,7 @@ export default function SettingsPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Phone number</label>
-                                            <Input defaultValue={user.phone || ''} placeholder="+91..." className="bg-background border-border h-11 focus:ring-2 focus:ring-primary" />
+                                            <Input defaultValue={user.phone || ''} placeholder="+...1234567890" className="bg-background border-border h-11 focus:ring-2 focus:ring-primary" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Job Title</label>
