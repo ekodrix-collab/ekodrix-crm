@@ -42,6 +42,7 @@ export type LeadSource =
   | 'website'
   | 'linkedin'
   | 'email'
+  | 'meta_ads'
   | 'other';
 
 export type LeadPriority = 'hot' | 'warm' | 'cold';
@@ -102,6 +103,7 @@ export interface Lead {
   created_by_user?: User | null;
   interactions_count?: number;
   tasks_count?: number;
+  is_follow_up_completed?: boolean;
 }
 
 export interface LeadFormData {

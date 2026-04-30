@@ -74,6 +74,7 @@ export const leadSchema = z.object({
     'website',
     'linkedin',
     'email',
+    'meta_ads',
     'other',
   ], {
     required_error: 'Please select a lead source',

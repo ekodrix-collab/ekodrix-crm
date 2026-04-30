@@ -32,6 +32,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   website: Globe,
   linkedin: Linkedin,
   email: Mail,
+  meta_ads: Facebook,
   other: MoreHorizontal,
 };
 
