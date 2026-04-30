@@ -48,15 +48,16 @@ import type { User as UserType, Lead } from '@/types';
 interface LeadFormProps {
     initialData?: Lead;
     isEdit?: boolean;
+    users?: UserType[];
 }
 
-export function LeadForm({ initialData, isEdit = false }: LeadFormProps) {
+export function LeadForm({ initialData, isEdit = false, users: initialUsers = [] }: LeadFormProps) {
     const router = useRouter();
     const { toast } = useToast();
     const supabase = createClient();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [users, setUsers] = useState<UserType[]>([]);
+    const [users, setUsers] = useState<UserType[]>(initialUsers);
     const { checking, duplicate, checkDuplicate, clearDuplicate } = useDuplicateCheck();
 
     // Initialize form
@@ -85,18 +86,23 @@ export function LeadForm({ initialData, isEdit = false }: LeadFormProps) {
         },
     });
 
-    // Fetch team members
+    // Fetch team members if not provided
     useEffect(() => {
+        if (initialUsers.length > 0) {
+            setUsers(initialUsers);
+            return;
+        }
+
         const fetchUsers = async () => {
             const { data } = await supabase
                 .from('users')
-                .select('id, name, email')
+                .select('id, name, email, role, is_active, daily_target, created_at, updated_at, avatar_url')
                 .eq('is_active', true)
                 .order('name');
             setUsers((data as any) || []);
         };
         fetchUsers();
-    }, [supabase]);
+    }, [supabase, initialUsers]);
 
     // Debounced duplicate check
     const debouncedDuplicateCheck = useCallback(
@@ -152,10 +158,15 @@ export function LeadForm({ initialData, isEdit = false }: LeadFormProps) {
             const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
             try {
+                const submissionData = {
+                    ...data,
+                    assigned_to: data.assigned_to || null,
+                };
+
                 const response = await fetch(url, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(submissionData),
                     signal: controller.signal,
                 });
 

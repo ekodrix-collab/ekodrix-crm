@@ -47,7 +47,15 @@ async function getLead(id: string) {
 
 export default async function EditLeadPage({ params }: EditLeadPageProps) {
     const { id } = await params;
+    const supabase = await createClient();
     const lead = await getLead(id);
+
+    // Fetch team members for assignment
+    const { data: users } = await supabase
+        .from('users')
+        .select('id, name, email, role, is_active, daily_target, created_at, updated_at, avatar_url')
+        .eq('is_active', true)
+        .order('name');
 
     if (!lead) {
         notFound();
@@ -70,7 +78,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
                 </div>
             </div>
 
-            <LeadForm initialData={lead} isEdit />
+            <LeadForm initialData={lead} users={users || []} isEdit />
         </div>
     );
 }

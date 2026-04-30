@@ -1,11 +1,19 @@
-'use client';
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LeadForm } from '@/components/leads/lead-form';
 import { ArrowLeft } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 
-export default function NewLeadPage() {
+export default async function NewLeadPage() {
+  const supabase = await createClient();
+  
+  // Fetch team members for assignment
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, name, email, role, is_active, daily_target, created_at, updated_at, avatar_url')
+    .eq('is_active', true)
+    .order('name');
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -23,7 +31,7 @@ export default function NewLeadPage() {
         </div>
       </div>
 
-      <LeadForm />
+      <LeadForm users={users || []} />
     </div>
   );
 }
