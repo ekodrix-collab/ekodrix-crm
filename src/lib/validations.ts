@@ -18,7 +18,7 @@ export const leadSchema = z.object({
 
   phone: z
     .string()
-    .min(10, 'Phone number must be at least 10 digits')
+    .min(7, 'Phone number must be at least 7 digits')
     .max(20, 'Phone number must be less than 20 characters')
     .optional()
     .or(z.literal('')),
@@ -43,6 +43,7 @@ export const leadSchema = z.object({
 
   whatsapp_number: z
     .string()
+    .min(7, 'WhatsApp number must be at least 7 digits')
     .max(20, 'WhatsApp number must be less than 20 characters')
     .optional()
     .or(z.literal('')),

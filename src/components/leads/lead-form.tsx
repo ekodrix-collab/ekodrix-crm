@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { debounce, extractInstagramUsername } from '@/lib/utils';
 import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES, COUNTRIES, COUNTRY_CODE_MAP } from '@/lib/constants';
+import { COUNTRY_CODES } from '@/lib/country-codes';
 import ReactCountryFlag from 'react-country-flag';
 import type { User as UserType, Lead } from '@/types';
 
@@ -284,26 +285,71 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                             <FormField
                                 control={form.control}
                                 name="phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Phone Number</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <Input
-                                                    placeholder="+1 234 567 890"
-                                                    className="pl-10"
-                                                    {...field}
-                                                    onBlur={(e) => {
-                                                        field.onBlur();
-                                                        handleFieldBlur('phone', e.target.value);
-                                                    }}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                render={({ field }) => {
+                                    // Find matching code - sort by length descending to match longest code first (e.g. +1 242 vs +1)
+                                    const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                                    const found = sortedCodes.find(c => field.value?.startsWith(c.code));
+                                    const currentCode = found?.code || '+91';
+                                    const currentNumber = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>Phone Number</FormLabel>
+                                            <FormControl>
+                                                <div className="flex gap-2">
+                                                    <Select
+                                                        value={currentCode}
+                                                        onValueChange={(newCode) => {
+                                                            const val = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+                                                            field.onChange(newCode + val);
+                                                        }}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-[120px] shrink-0">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {COUNTRY_CODES.map((c) => (
+                                                                <SelectItem key={`${c.iso}-${c.code}`} value={c.code}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <ReactCountryFlag 
+                                                                            countryCode={c.iso} 
+                                                                            svg 
+                                                                            style={{
+                                                                                width: '1.2em',
+                                                                                height: '1.2em',
+                                                                            }}
+                                                                        />
+                                                                        <span>{c.code}</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <div className="relative flex-1">
+                                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <Input
+                                                            placeholder="9876543210"
+                                                            className="pl-10"
+                                                            value={currentNumber}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(/\D/g, '');
+                                                                // Only update if there's actually a number, or keep it empty if clearing
+                                                                field.onChange(val ? currentCode + val : '');
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                field.onBlur();
+                                                                handleFieldBlur('phone', field.value || '');
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    );
+                                }}
                             />
 
                             <FormField
@@ -482,26 +528,69 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                             <FormField
                                 control={form.control}
                                 name="whatsapp_number"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>WhatsApp</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                                                <Input
-                                                    placeholder="+1 234 567 890"
-                                                    className="pl-10"
-                                                    {...field}
-                                                    onBlur={(e) => {
-                                                        field.onBlur();
-                                                        handleFieldBlur('whatsapp_number', e.target.value);
-                                                    }}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                render={({ field }) => {
+                                    const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                                    const found = sortedCodes.find(c => field.value?.startsWith(c.code));
+                                    const currentCode = found?.code || '+91';
+                                    const currentNumber = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>WhatsApp</FormLabel>
+                                            <FormControl>
+                                                <div className="flex gap-2">
+                                                    <Select
+                                                        value={currentCode}
+                                                        onValueChange={(newCode) => {
+                                                            const val = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+                                                            field.onChange(newCode + val);
+                                                        }}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-[120px] shrink-0">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {COUNTRY_CODES.map((c) => (
+                                                                <SelectItem key={`${c.iso}-${c.code}`} value={c.code}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <ReactCountryFlag 
+                                                                            countryCode={c.iso} 
+                                                                            svg 
+                                                                            style={{
+                                                                                width: '1.2em',
+                                                                                height: '1.2em',
+                                                                            }}
+                                                                        />
+                                                                        <span>{c.code}</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <div className="relative flex-1">
+                                                        <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                                                        <Input
+                                                            placeholder="9876543210"
+                                                            className="pl-10"
+                                                            value={currentNumber}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(/\D/g, '');
+                                                                field.onChange(val ? currentCode + val : '');
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                field.onBlur();
+                                                                handleFieldBlur('whatsapp_number', field.value || '');
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    );
+                                }}
                             />
 
                             <FormField
