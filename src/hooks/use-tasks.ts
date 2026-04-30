@@ -46,7 +46,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         .select(
           `
           *,
-          lead:leads(id, name, phone, company_name, status, priority),
+          lead:leads(id, name, phone, company_name, status, priority, country, city),
           assigned_user:users!assigned_to(id, name, email, avatar_url)
         `,
           { count: 'exact' }
@@ -268,7 +268,7 @@ export function useTask(id: string) {
         .select(
           `
           *,
-          lead:leads(id, name, phone, company_name, status),
+          lead:leads(id, name, phone, company_name, status, country, city),
           assigned_user:users!assigned_to(id, name, email, avatar_url),
           created_by_user:users!created_by(id, name)
         `
