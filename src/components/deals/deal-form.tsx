@@ -72,7 +72,7 @@ export function DealForm({
     const fetchLeads = async () => {
       const { data } = await supabase
         .from('leads')
-        .select('id, name, company_name, source, status, priority, follow_up_count, created_at, updated_at')
+        .select('id, name, company_name, source, status, priority, follow_up_count, created_at, updated_at, country, city')
         .in('status', ['interested', 'negotiating'])
         .order('name');
       setLeads(data || []);

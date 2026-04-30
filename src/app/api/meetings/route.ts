@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
           id, user_id, email, name, role, rsvp_status, invited_at, responded_at,
           user:users(id, name, email, avatar_url)
         ),
-        lead:leads(id, name, company_name)
+        lead:leads(id, name, company_name, country, city)
       `)
             .order('start_time', { ascending: true });
 
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
           id, user_id, email, name, role, rsvp_status, invited_at, responded_at,
           user:users(id, name, email, avatar_url)
         ),
-        lead:leads(id, name, company_name)
+        lead:leads(id, name, company_name, country, city)
       `)
             .eq('id', meeting.id)
             .single();

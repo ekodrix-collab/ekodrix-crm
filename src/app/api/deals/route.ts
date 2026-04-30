@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name, email, status),
+        lead:leads(id, name, phone, company_name, email, status, country, city),
         owner:users!owner_id(id, name, email, avatar_url)
       `,
         { count: 'exact' }
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name),
+        lead:leads(id, name, phone, company_name, country, city),
         owner:users!owner_id(id, name, email, avatar_url)
       `
       )

@@ -39,7 +39,7 @@ export function useDeals(options: UseDealsOptions = {}) {
         .select(
           `
           *,
-          lead:leads(id, name, phone, company_name, email),
+          lead:leads(id, name, phone, company_name, email, country, city),
           owner:users!owner_id(id, name, email, avatar_url)
         `
         )

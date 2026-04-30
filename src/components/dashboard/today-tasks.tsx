@@ -39,7 +39,7 @@ async function getTodayTasks() {
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name, priority),
+        lead:leads(id, name, phone, company_name, priority, country, city),
         assigned_user:users!assigned_to(id, name)
       `
       )

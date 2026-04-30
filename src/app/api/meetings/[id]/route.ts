@@ -20,7 +20,7 @@ export async function GET(
           id, user_id, email, name, role, rsvp_status, invited_at, responded_at,
           user:users(id, name, email, avatar_url)
         ),
-        lead:leads(id, name, company_name, email, phone)
+        lead:leads(id, name, company_name, email, phone, country, city)
       `)
             .eq('id', id)
             .single();
@@ -95,7 +95,7 @@ export async function PUT(
           id, user_id, email, name, role, rsvp_status, invited_at, responded_at,
           user:users(id, name, email, avatar_url)
         ),
-        lead:leads(id, name, company_name)
+        lead:leads(id, name, company_name, country, city)
       `)
             .single();
 

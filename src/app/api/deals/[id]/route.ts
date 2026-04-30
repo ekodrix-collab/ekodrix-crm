@@ -16,7 +16,7 @@ export async function GET(
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name, email, status),
+        lead:leads(id, name, phone, company_name, email, status, country, city),
         owner:users!owner_id(id, name, email, avatar_url),
         payments(*)
       `
@@ -114,7 +114,7 @@ export async function PUT(
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name),
+        lead:leads(id, name, phone, company_name, country, city),
         owner:users!owner_id(id, name, email, avatar_url)
       `
       )

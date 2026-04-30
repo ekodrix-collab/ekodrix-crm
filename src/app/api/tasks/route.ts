@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name, status, priority),
+        lead:leads(id, name, phone, company_name, status, priority, country, city),
         assigned_user:users!assigned_to(id, name, email, avatar_url),
         created_by_user:users!created_by(id, name)
       `,
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       .select(
         `
         *,
-        lead:leads(id, name, phone, company_name),
+        lead:leads(id, name, phone, company_name, country, city),
         assigned_user:users!assigned_to(id, name, email, avatar_url)
       `
       )
