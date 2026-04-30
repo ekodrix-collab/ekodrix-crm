@@ -95,8 +95,16 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     };
 
+    // Sanitize UUID fields (convert empty strings to null)
+    const uuidFields = ['assigned_to', 'created_by'];
+    uuidFields.forEach(field => {
+      if (updateData[field as keyof Lead] === '' as any) {
+        (updateData as any)[field] = null;
+      }
+    });
+
     // If assigning to someone new, update assigned_at
-    if (body.assigned_to && body.assigned_to !== currentLead?.assigned_to) {
+    if (updateData.assigned_to && updateData.assigned_to !== currentLead?.assigned_to) {
       updateData.assigned_at = new Date().toISOString();
     }
 
