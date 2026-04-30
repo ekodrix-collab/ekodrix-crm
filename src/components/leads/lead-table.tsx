@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,7 @@ import {
   Building,
   Calendar,
   Instagram,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   cn,
@@ -122,8 +124,8 @@ export function LeadTable({
     <div className="space-y-4">
       {/* Table */}
       <div className="bg-card rounded-lg border border-border overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow className="bg-accent/50 dark:bg-accent/20">
                 <TableHead className="w-12">
@@ -133,11 +135,13 @@ export function LeadTable({
                   />
                 </TableHead>
                 <TableHead>Lead</TableHead>
-                <TableHead className="hidden md:table-cell">Contact</TableHead>
-                <TableHead className="hidden lg:table-cell">Source</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Assigned</TableHead>
-                <TableHead className="hidden md:table-cell">Follow-up</TableHead>
+                <TableHead>Assigned</TableHead>
+                <TableHead>Follow-up</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead>Updated Date</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -195,7 +199,7 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Contact */}
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="space-y-1">
                       {lead.phone && (
                         <p className="text-sm text-foreground/80">
@@ -211,7 +215,7 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Source */}
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell>
                     <LeadSourceIcon source={lead.source} showLabel />
                   </TableCell>
 
@@ -221,7 +225,7 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Assigned */}
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell>
                     {lead.assigned_user ? (
                       <div className="flex items-center gap-2">
                         <Avatar className="w-6 h-6">
@@ -247,8 +251,13 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Follow-up */}
-                  <TableCell className="hidden md:table-cell">
-                    {lead.next_follow_up_date ? (
+                  <TableCell>
+                    {lead.is_follow_up_completed || lead.status === 'converted' || lead.status === 'lost' ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Completed
+                      </Badge>
+                    ) : lead.next_follow_up_date ? (
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="w-3 h-3 text-muted-foreground/60" />
                         <span
@@ -264,6 +273,16 @@ export function LeadTable({
                     ) : (
                       <span className="text-xs text-muted-foreground/60">Not set</span>
                     )}
+                  </TableCell>
+
+                  {/* Created Date */}
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(lead.created_at)}
+                  </TableCell>
+
+                  {/* Updated Date */}
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(lead.updated_at)}
                   </TableCell>
 
                   {/* Actions */}

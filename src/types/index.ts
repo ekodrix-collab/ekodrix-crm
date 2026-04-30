@@ -102,6 +102,7 @@ export interface Lead {
   created_by_user?: User | null;
   interactions_count?: number;
   tasks_count?: number;
+  is_follow_up_completed?: boolean;
 }
 
 export interface LeadFormData {
