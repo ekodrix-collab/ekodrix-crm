@@ -42,6 +42,7 @@ export type LeadSource =
   | 'website'
   | 'linkedin'
   | 'email'
+  | 'meta_ads'
   | 'other';
 
 export type LeadPriority = 'hot' | 'warm' | 'cold';

@@ -124,6 +124,12 @@ export const LEAD_SOURCES = {
     color: 'text-red-500',
     bgColor: 'bg-red-100'
   },
+  meta_ads: {
+    label: 'Meta Ads',
+    icon: 'Facebook',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-100'
+  },
   other: {
     label: 'Other',
     icon: 'MoreHorizontal',
@@ -416,6 +422,7 @@ export const BUDGET_RANGES = [
   { value: '30k_50k', label: '₹30,000 - ₹50,000', min: 30000, max: 50000 },
   { value: '50k_100k', label: '₹50,000 - ₹100,000', min: 50000, max: 100000 },
   { value: 'over_100k', label: 'Over ₹100,000', min: 100000, max: null },
+  { value: 'custom', label: 'Custom', min: null, max: null },
 ] as const;
 
 // Project Types
@@ -431,6 +438,8 @@ export const PROJECT_TYPES = [
   { value: 'ui_ux_design', label: 'UI/UX Design', icon: 'Palette' },
   { value: 'maintenance', label: 'Maintenance', icon: 'Wrench' },
   { value: 'consulting', label: 'Consulting', icon: 'MessageSquare' },
+  { value: 'pwa', label: 'PWA', icon: 'Zap' },
+  { value: 'digital_marketing', label: 'Digital Marketing', icon: 'TrendingUp' },
   { value: 'other', label: 'Other', icon: 'MoreHorizontal' },
 ] as const;
 

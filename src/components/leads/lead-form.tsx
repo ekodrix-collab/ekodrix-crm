@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm, type Resolver } from 'react-hook-form';
+import { format } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
 import { leadSchema, type LeadFormValues } from '@/lib/validations';
@@ -40,6 +41,8 @@ import {
     Linkedin,
     Save,
     Loader2,
+    Calendar,
+    Clock,
 } from 'lucide-react';
 import { debounce, extractInstagramUsername } from '@/lib/utils';
 import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES } from '@/lib/constants';
@@ -59,6 +62,8 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [users, setUsers] = useState<UserType[]>(initialUsers);
     const { checking, duplicate, checkDuplicate, clearDuplicate } = useDuplicateCheck();
+    const [customProjectType, setCustomProjectType] = useState('');
+    const [customBudget, setCustomBudget] = useState('');
 
     // Initialize form
     const form = useForm<LeadFormValues>({
@@ -85,6 +90,26 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
             tags: initialData?.tags || [],
         },
     });
+
+    const projectType = form.watch('project_type');
+    const budgetRange = form.watch('budget_range');
+
+    // Initialize custom fields from data
+    useEffect(() => {
+        if (initialData) {
+            const isPredefinedProject = PROJECT_TYPES.some(pt => pt.value === initialData.project_type && pt.value !== 'other');
+            if (initialData.project_type && !isPredefinedProject) {
+                form.setValue('project_type', 'other');
+                setCustomProjectType(initialData.project_type);
+            }
+
+            const isPredefinedBudget = BUDGET_RANGES.some(br => br.value === initialData.budget_range && br.value !== 'custom');
+            if (initialData.budget_range && !isPredefinedBudget) {
+                form.setValue('budget_range', 'custom');
+                setCustomBudget(initialData.budget_range);
+            }
+        }
+    }, [initialData, form]);
 
     // Fetch team members if not provided
     useEffect(() => {
@@ -161,6 +186,8 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                 const submissionData = {
                     ...data,
                     assigned_to: data.assigned_to || null,
+                    project_type: data.project_type === 'other' ? customProjectType : data.project_type,
+                    budget_range: data.budget_range === 'custom' ? customBudget : data.budget_range,
                 };
 
                 const response = await fetch(url, {
@@ -593,6 +620,15 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {projectType === 'other' && (
+                                            <div className="mt-2">
+                                                <Input
+                                                    placeholder="Enter custom project type"
+                                                    value={customProjectType}
+                                                    onChange={(e) => setCustomProjectType(e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -621,6 +657,15 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {budgetRange === 'custom' && (
+                                            <div className="mt-2">
+                                                <Input
+                                                    placeholder="Enter custom budget"
+                                                    value={customBudget}
+                                                    onChange={(e) => setCustomBudget(e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -645,6 +690,22 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                             />
                         </CardContent>
                     </Card>
+
+                    {/* Timestamps - Only in Edit Mode */}
+                    {isEdit && initialData && (
+                        <Card className="bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+                            <CardContent className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex items-center gap-3 text-sm text-slate-500">
+                                    <Calendar className="w-4 h-4 text-blue-500" />
+                                    <span>Created At: <span className="font-medium text-slate-700 dark:text-slate-300">{format(new Date(initialData.created_at), 'MMM dd, yyyy')}</span></span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm text-slate-500">
+                                    <Clock className="w-4 h-4 text-orange-500" />
+                                    <span>Updated At: <span className="font-medium text-slate-700 dark:text-slate-300">{format(new Date(initialData.updated_at), 'MMM dd, yyyy')}</span></span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Actions */}
                     <div className="flex justify-end gap-3">
