@@ -445,6 +445,7 @@ export const PROJECT_TYPES = [
 
 // Country Options
 export const COUNTRIES = [
+  { label: 'India', value: 'IN' },
   { label: 'Saudi Arabia', value: 'SA' },
   { label: 'United Arab Emirates', value: 'AE' },
   { label: 'Qatar', value: 'QA' },
@@ -455,6 +456,7 @@ export const COUNTRIES = [
 
 // Country Code Mapping (for flags)
 export const COUNTRY_CODE_MAP: Record<string, string> = {
+  'IN': 'IN',
   'SA': 'SA',
   'AE': 'AE',
   'QA': 'QA',
@@ -465,6 +467,7 @@ export const COUNTRY_CODE_MAP: Record<string, string> = {
 
 // Country Name Mapping (for display)
 export const COUNTRY_NAME_MAP: Record<string, string> = {
+  'IN': 'India',
   'SA': 'Saudi Arabia',
   'AE': 'United Arab Emirates',
   'QA': 'Qatar',
