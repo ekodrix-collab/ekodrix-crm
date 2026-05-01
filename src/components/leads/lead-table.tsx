@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -51,7 +51,7 @@ import {
   openPhoneDialer,
   openEmailClient,
 } from '@/lib/utils';
-import { PRIORITIES, COUNTRY_CODE_MAP } from '@/lib/constants';
+import { PRIORITIES, COUNTRY_CODE_MAP, BUDGET_RANGES } from '@/lib/constants';
 import ReactCountryFlag from 'react-country-flag';
 import type { Lead } from '@/types';
 
@@ -70,7 +70,11 @@ export function LeadTable({
   pageSize,
 }: LeadTableProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+
+  const currentBudget = searchParams.get('budget') || 'all';
+  const showBudgetColumn = currentBudget !== 'all';
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const startItem = (currentPage - 1) * pageSize + 1;
@@ -129,22 +133,23 @@ export function LeadTable({
           <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow className="bg-accent/50 dark:bg-accent/20">
-                <TableHead className="w-12">
+                <TableHead className="w-12 whitespace-nowrap">
                   <Checkbox
                     checked={selectedLeads.length === leads.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Lead</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead>Follow-up</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead>Updated Date</TableHead>
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="whitespace-nowrap">Lead</TableHead>
+                <TableHead className="whitespace-nowrap">Location</TableHead>
+                <TableHead className="whitespace-nowrap">Contact</TableHead>
+                <TableHead className="whitespace-nowrap">Source</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                {showBudgetColumn && <TableHead className="whitespace-nowrap">Budget</TableHead>}
+                <TableHead className="whitespace-nowrap">Assigned</TableHead>
+                <TableHead className="whitespace-nowrap">Follow-up</TableHead>
+                <TableHead className="whitespace-nowrap">Created Date</TableHead>
+                <TableHead className="whitespace-nowrap">Updated Date</TableHead>
+                <TableHead className="w-12 whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,7 +160,7 @@ export function LeadTable({
                   onClick={() => router.push(`/leads/${lead.id}`)}
                 >
                   {/* Checkbox */}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedLeads.includes(lead.id)}
                       onCheckedChange={() => toggleSelect(lead.id)}
@@ -163,7 +168,7 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Lead Info */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10 flex-shrink-0 shadow-sm border border-border bg-green-400 flex items-center justify-center">
                         <AvatarFallback
@@ -175,7 +180,7 @@ export function LeadTable({
                           {getInitials(lead.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-[200px]">
                         <div className="flex items-center gap-1.5">
                           <p className="font-medium truncate text-slate-900 dark:text-slate-100">
                             {lead.name}
@@ -186,14 +191,14 @@ export function LeadTable({
                         </div>
                         {lead.company_name && (
                           <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                            <Building className="w-3 h-3" />
-                            {lead.company_name}
+                            <Building className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{lead.company_name}</span>
                           </p>
                         )}
                         {lead.instagram_handle && (
                           <p className="text-[10px] text-pink-500 truncate flex items-center gap-1 mt-0.5">
-                            <Instagram className="w-2.5 h-2.5" />
-                            @{lead.instagram_handle}
+                            <Instagram className="w-2.5 h-2.5 flex-shrink-0" />
+                            <span className="truncate">@{lead.instagram_handle}</span>
                           </p>
                         )}
                       </div>
@@ -201,7 +206,7 @@ export function LeadTable({
                     </TableCell>
 
                   {/* Location */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {lead.country && COUNTRY_CODE_MAP[lead.country] ? (
                       <div className="flex items-center gap-2">
                         <ReactCountryFlag
@@ -223,7 +228,7 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Contact */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <div className="space-y-1">
                       {lead.phone && (
                         <p className="text-sm text-foreground/80">
@@ -231,7 +236,7 @@ export function LeadTable({
                         </p>
                       )}
                       {lead.email && (
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
                           {lead.email}
                         </p>
                       )}
@@ -239,20 +244,44 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Source */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <LeadSourceIcon source={lead.source} showLabel />
                   </TableCell>
 
                   {/* Status */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <LeadStatusBadge status={lead.status} size="sm" />
                   </TableCell>
+                  
+                  {/* Budget */}
+                  {showBudgetColumn && (
+                    <TableCell className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      {lead.budget_custom ? (
+                        new Intl.NumberFormat('en-IN', {
+                          style: 'currency',
+                          currency: 'INR',
+                          maximumFractionDigits: 0,
+                        }).format(lead.budget_custom)
+                      ) : lead.budget_range ? (
+                        {
+                          under_5k: 'Under ₹5k',
+                          '5k_15k': '₹5k – ₹15k',
+                          '15k_30k': '₹15k – ₹30k',
+                          '30k_50k': '₹30k – ₹50k',
+                          '50k_100k': '₹50k – ₹100k',
+                          over_100k: 'Above ₹100k',
+                        }[lead.budget_range] || lead.budget_range
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
+                  )}
 
                   {/* Assigned */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {lead.assigned_user ? (
                       <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
+                        <Avatar className="w-6 h-6 flex-shrink-0">
                           <AvatarImage
                             src={lead.assigned_user.avatar_url || undefined}
                           />
@@ -265,7 +294,7 @@ export function LeadTable({
                             {getInitials(lead.assigned_user.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm text-foreground/80">
+                        <span className="text-sm text-foreground/80 truncate max-w-[100px]">
                           {lead.assigned_user.name.split(' ')[0]}
                         </span>
                       </div>
@@ -275,14 +304,14 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Follow-up */}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {lead.is_follow_up_completed || lead.status === 'converted' || lead.status === 'lost' ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1">
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 whitespace-nowrap">
                         <CheckCircle2 className="w-3 h-3" />
                         Completed
                       </Badge>
                     ) : lead.next_follow_up_date ? (
-                      <div className="flex items-center gap-1 text-sm">
+                      <div className="flex items-center gap-1 text-sm whitespace-nowrap">
                         <Calendar className="w-3 h-3 text-muted-foreground/60" />
                         <span
                           className={cn(
@@ -300,17 +329,17 @@ export function LeadTable({
                   </TableCell>
 
                   {/* Created Date */}
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {formatDate(lead.created_at)}
                   </TableCell>
 
                   {/* Updated Date */}
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {formatDate(lead.updated_at)}
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

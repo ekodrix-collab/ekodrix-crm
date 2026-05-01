@@ -337,3 +337,52 @@ export function extractInstagramUsername(input: string): string {
 
   return username;
 }
+
+/**
+ * Normalizes a budget value (string or number) into a consistent numeric representation.
+ * Handles predefined ranges (under_5k, 5k_15k), custom strings (5k-15k), 
+ * and numeric values. Uses the upper bound of ranges for normalization.
+ */
+export function normalizeBudget(budget: string | number | null | undefined): number {
+  if (budget === null || budget === undefined || budget === '') return 0;
+  
+  // If it's already a number, return it
+  if (typeof budget === 'number') return budget;
+  
+  // If it's a numeric string, return it as number
+  if (!isNaN(Number(budget)) && !budget.toString().toLowerCase().includes('k')) {
+    return Number(budget);
+  }
+
+  // Clean string: remove currency symbols, commas, and extra spaces
+  let clean = budget.toString().toLowerCase().replace(/[₹$,\s]/g, '');
+  
+  // Internal helper to parse values with 'k' or 'm'
+  const parseValue = (val: string): number => {
+    const numPart = parseFloat(val.replace(/[^\d.]/g, ''));
+    if (isNaN(numPart)) return 0;
+    if (val.includes('k')) return numPart * 1000;
+    if (val.includes('m')) return numPart * 1000000;
+    return numPart;
+  };
+
+  // Handle ranges like "5k-15k", "5k_15k", or "5k to 15k"
+  if (clean.includes('-') || clean.includes('–') || clean.includes('_') || clean.includes('to')) {
+    const parts = clean.split(/[-–_]|to/);
+    const maxPart = parts[parts.length - 1].trim(); 
+    return parseValue(maxPart);
+  }
+  
+  // Handle "under 5k", "less than 5k"
+  if (clean.includes('under') || clean.includes('less')) {
+    return parseValue(clean);
+  }
+  
+  // Handle "over 50k", "above 50k", "more than 50k"
+  if (clean.includes('over') || clean.includes('above') || clean.includes('more')) {
+    // For "over X", we treat it as X (or slightly more, but X is safer for range checking)
+    return parseValue(clean);
+  }
+
+  return parseValue(clean);
+}

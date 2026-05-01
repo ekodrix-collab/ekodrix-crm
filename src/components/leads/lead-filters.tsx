@@ -34,6 +34,7 @@ export function LeadFilters({ className }: LeadFiltersProps) {
   const currentAssigned = searchParams.get('assigned_to') || 'all';
   const currentPriority = searchParams.get('priority') || 'all';
   const currentProjectType = searchParams.get('project_type') || 'all';
+  const currentBudget = searchParams.get('budget') || 'all';
   const currentSearch = searchParams.get('search') || '';
 
   const [search, setSearch] = useState(currentSearch);
@@ -60,6 +61,7 @@ export function LeadFilters({ className }: LeadFiltersProps) {
     currentAssigned !== 'all',
     currentPriority !== 'all',
     currentProjectType !== 'all',
+    currentBudget !== 'all',
   ].filter(Boolean).length;
 
   // Update URL with new params
@@ -181,7 +183,7 @@ export function LeadFilters({ className }: LeadFiltersProps) {
 
       {/* Advanced Filters Panel */}
       {showFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 bg-card rounded-lg border border-border shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 p-4 bg-card rounded-lg border border-border shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
           {/* Status Filter */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Status</label>
@@ -289,9 +291,28 @@ export function LeadFilters({ className }: LeadFiltersProps) {
             </Select>
           </div>
 
+          {/* Budget Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Budget</label>
+            <Select
+              value={currentBudget}
+              onValueChange={(value) => updateFilters('budget', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Budgets" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Budgets</SelectItem>
+                <SelectItem value="under_10k">Under ₹10k</SelectItem>
+                <SelectItem value="10k_50k">₹10k – ₹50k</SelectItem>
+                <SelectItem value="above_50k">Above ₹50k</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Clear Filters */}
           {activeFiltersCount > 0 && (
-            <div className="sm:col-span-2 lg:col-span-5 pt-2 border-t border-border mt-1">
+            <div className="sm:col-span-2 lg:col-span-3 xl:col-span-6 pt-2 border-t border-border mt-1">
               <Button
                 variant="ghost"
                 size="sm"

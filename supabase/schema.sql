@@ -38,12 +38,12 @@ CREATE TABLE leads (
     website VARCHAR(500),
     
     -- Classification
-    source VARCHAR(50) NOT NULL CHECK (source IN ('instagram', 'facebook', 'whatsapp', 'call', 'referral', 'website', 'linkedin', 'email', 'other')),
+    source VARCHAR(50) NOT NULL CHECK (source IN ('instagram', 'facebook', 'whatsapp', 'call', 'referral', 'website', 'linkedin', 'email', 'meta_ads', 'other')),
     source_details TEXT,
     
     status VARCHAR(30) DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'interested', 'follow_up_later', 'no_money', 'not_interested', 'no_reply', 'negotiating', 'converted', 'lost')),
     
-    priority VARCHAR(10) DEFAULT 'medium' CHECK (priority IN ('hot', 'warm', 'cold')),
+    priority VARCHAR(10) DEFAULT 'warm' CHECK (priority IN ('hot', 'warm', 'cold')),
     
     -- Assignment
     assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -109,7 +109,7 @@ CREATE TABLE tasks (
     assigned_to UUID REFERENCES users(id) NOT NULL,
     created_by UUID REFERENCES users(id),
     
-    type VARCHAR(30) NOT NULL CHECK (type IN ('follow_up_call', 'follow_up_message', 'send_proposal', 'meeting', 'demo', 'send_contract', 'collect_payment', 'other')),
+    type VARCHAR(30) NOT NULL CHECK (type IN ('follow_up_call', 'follow_up_message', 'send_proposal', 'meeting', 'demo', 'video_call', 'send_contract', 'collect_payment', 'other')),
     
     title VARCHAR(300) NOT NULL,
     description TEXT,

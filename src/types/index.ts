@@ -77,6 +77,7 @@ export interface Lead {
   // Project Details
   project_type?: string | null;
   budget_range?: string | null;
+  budget_custom?: number | null;
   timeline?: string | null;
   requirements?: string | null;
 
