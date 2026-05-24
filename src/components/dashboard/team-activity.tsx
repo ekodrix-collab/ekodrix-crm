@@ -26,7 +26,7 @@ interface TeamMemberStats {
   conversionRate: number;
 }
 
-async function getTeamActivity() {
+async function getTeamActivity(campaignId?: string) {
   const supabase = await createClient();
   const today = new Date().toISOString().split('T')[0];
 
@@ -44,40 +44,78 @@ async function getTeamActivity() {
     }
 
     // Get total lead count (including unassigned)
-    const { count: totalLeadCount } = await supabase
+    let totalLeadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true });
+    
+    if (campaignId && campaignId !== 'all') {
+      totalLeadsQuery = totalLeadsQuery.eq('campaign_id', campaignId);
+    }
+    const { count: totalLeadCount } = await totalLeadsQuery;
 
     // Get stats for each user
     const teamStats: TeamMemberStats[] = await Promise.all(
       users.map(async (user) => {
         // Get total leads assigned
-        const { count: totalLeads } = await supabase
+        let leadsQuery = supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('assigned_to', user.id);
 
+        if (campaignId && campaignId !== 'all') {
+          leadsQuery = leadsQuery.eq('campaign_id', campaignId);
+        }
+        const { count: totalLeads } = await leadsQuery;
+
         // Get converted leads
-        const { count: convertedLeads } = await supabase
+        let convertedLeadsQuery = supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('assigned_to', user.id)
           .eq('status', 'converted');
 
+        if (campaignId && campaignId !== 'all') {
+          convertedLeadsQuery = convertedLeadsQuery.eq('campaign_id', campaignId);
+        }
+        const { count: convertedLeads } = await convertedLeadsQuery;
+
         // Get today's tasks
-        const { count: todayTasks } = await supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_to', user.id)
-          .eq('due_date', today);
+        let todayTasksQuery;
+        if (campaignId && campaignId !== 'all') {
+          todayTasksQuery = supabase
+            .from('tasks')
+            .select('*, lead:leads!inner(campaign_id)', { count: 'exact', head: true })
+            .eq('assigned_to', user.id)
+            .eq('due_date', today)
+            .eq('lead.campaign_id', campaignId);
+        } else {
+          todayTasksQuery = supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to', user.id)
+            .eq('due_date', today);
+        }
+        const { count: todayTasks } = await todayTasksQuery;
 
         // Get completed tasks today
-        const { count: completedTasks } = await supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_to', user.id)
-          .eq('due_date', today)
-          .eq('status', 'completed');
+        let completedTasksQuery;
+        if (campaignId && campaignId !== 'all') {
+          completedTasksQuery = supabase
+            .from('tasks')
+            .select('*, lead:leads!inner(campaign_id)', { count: 'exact', head: true })
+            .eq('assigned_to', user.id)
+            .eq('due_date', today)
+            .eq('status', 'completed')
+            .eq('lead.campaign_id', campaignId);
+        } else {
+          completedTasksQuery = supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to', user.id)
+            .eq('due_date', today)
+            .eq('status', 'completed');
+        }
+        const { count: completedTasks } = await completedTasksQuery;
 
         const total = totalLeads || 0;
         const converted = convertedLeads || 0;
@@ -105,14 +143,18 @@ async function getTeamActivity() {
   }
 }
 
-export async function TeamActivity() {
-  const { teamStats, totalLeadCount } = await getTeamActivity();
+interface TeamActivityProps {
+  campaignId?: string;
+}
+
+export async function TeamActivity({ campaignId }: TeamActivityProps) {
+  const { teamStats, totalLeadCount } = await getTeamActivity(campaignId);
 
   // Find top performer
   const topPerformer = teamStats.length > 0 ? teamStats[0] : null;
 
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -281,7 +323,7 @@ function TeamMemberItem({
 
 export function TeamActivitySkeleton() {
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Skeleton className="w-8 h-8 rounded-lg" />

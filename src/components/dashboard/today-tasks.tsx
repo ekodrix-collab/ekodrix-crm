@@ -29,22 +29,40 @@ const taskIcons: Record<string, React.ReactNode> = {
   other: <CheckSquare className="w-4 h-4" />,
 };
 
-async function getTodayTasks() {
+async function getTodayTasks(userId?: string, campaignId?: string): Promise<Task[]> {
   const supabase = await createClient();
   const today = new Date().toISOString().split('T')[0];
 
   try {
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select(
-        `
+    let selectString = `
+      *,
+      lead:leads!inner(id, name, phone, company_name, priority, country, city, campaign_id),
+      assigned_user:users!assigned_to(id, name)
+    `;
+    
+    if (!campaignId || campaignId === 'all') {
+      selectString = `
         *,
         lead:leads(id, name, phone, company_name, priority, country, city),
         assigned_user:users!assigned_to(id, name)
-      `
-      )
+      `;
+    }
+
+    let query = supabase
+      .from('tasks')
+      .select(selectString)
       .lte('due_date', today)
-      .eq('status', 'pending')
+      .eq('status', 'pending');
+
+    if (userId) {
+      query = query.eq('assigned_to', userId);
+    }
+    
+    if (campaignId && campaignId !== 'all') {
+      query = query.eq('lead.campaign_id', campaignId);
+    }
+
+    const { data: tasks, error } = await query
       .order('due_date', { ascending: true })
       .order('priority', { ascending: false })
       .limit(8);
@@ -54,15 +72,20 @@ async function getTodayTasks() {
       return [];
     }
 
-    return tasks || [];
+    return (tasks as unknown as Task[]) || [];
   } catch (error) {
     console.error('Error in getTodayTasks:', error);
     return [];
   }
 }
 
-export async function TodayTasks() {
-  const tasks = await getTodayTasks();
+interface TodayTasksProps {
+  userId?: string;
+  campaignId?: string;
+}
+
+export async function TodayTasks({ userId, campaignId }: TodayTasksProps) {
+  const tasks = await getTodayTasks(userId, campaignId);
   const today = new Date().toISOString().split('T')[0];
 
   // Separate overdue and today's tasks
@@ -70,7 +93,7 @@ export async function TodayTasks() {
   const todayTasks = tasks.filter((task) => task.due_date === today);
 
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -210,7 +233,7 @@ function TaskItem({ task, isOverdue = false }: { task: Task; isOverdue?: boolean
 
 export function TodayTasksSkeleton() {
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Skeleton className="w-8 h-8 rounded-lg" />

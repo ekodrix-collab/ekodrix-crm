@@ -95,7 +95,6 @@ export default function TasksPage() {
       const { data } = await supabase
         .from('users')
         .select('id, name, email, avatar_url, role, is_active, daily_target, created_at, updated_at')
-        .eq('is_active', true)
         .order('name');
       setUsers(data || []);
     };

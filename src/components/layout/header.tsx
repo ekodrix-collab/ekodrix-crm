@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from './user-menu';
 import { useUser } from '@/hooks/use-user';
+import { QuickAddLeadModal } from '@/components/leads/quick-add-lead-modal';
 import {
   Search,
   Bell,
@@ -46,6 +47,7 @@ export function Header() {
   const [showResults, setShowResults] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
   // Debounced search function
   const performSearch = useCallback(
@@ -342,15 +344,13 @@ export function Header() {
         {/* Right Actions */}
         <div className="flex items-center gap-2 ml-4">
           {/* Quick Add Button */}
-          <Link href="/leads/new">
-            <Button size="sm" className="hidden sm:flex gap-2">
-              <Plus className="w-4 h-4" />
-              <span>Add Lead</span>
-            </Button>
-            <Button size="icon" variant="outline" className="sm:hidden">
-              <Plus className="w-4 h-4" />
-            </Button>
-          </Link>
+          <Button size="sm" className="hidden sm:flex gap-2" onClick={() => setIsQuickAddOpen(true)}>
+            <Plus className="w-4 h-4" />
+            <span>Quick Lead</span>
+          </Button>
+          <Button size="icon" variant="outline" className="sm:hidden" onClick={() => setIsQuickAddOpen(true)}>
+            <Plus className="w-4 h-4" />
+          </Button>
 
           {/* Notifications */}
           <DropdownMenu>
@@ -440,6 +440,12 @@ export function Header() {
           <UserMenu />
         </div>
       </div>
+
+      {/* Quick capture modal overlay */}
+      <QuickAddLeadModal
+        open={isQuickAddOpen}
+        onOpenChange={setIsQuickAddOpen}
+      />
     </header>
   );
 }

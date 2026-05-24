@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { LeadTable } from '@/components/leads/lead-table';
 import { LeadFilters } from '@/components/leads/lead-filters';
+import { DashboardFilters } from '@/components/dashboard/dashboard-filters';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Download, Upload } from 'lucide-react';
@@ -26,6 +27,8 @@ interface LeadsPageProps {
     budget?: string;
     search?: string;
     page?: string;
+    scope?: string;
+    campaign_id?: string;
   };
 }
 
@@ -48,21 +51,33 @@ async function getLeads(searchParams: LeadsPageProps['searchParams']) {
     )
     .order('created_at', { ascending: false });
 
-  // Apply basic filters in the database
+  // Apply scope filtering (My Space vs. All Space)
+  const scope = searchParams.scope || 'my';
+  if (scope === 'my') {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      query = query.eq('assigned_to', user.id);
+    }
+  } else if (searchParams.assigned_to && searchParams.assigned_to !== 'all') {
+    if (searchParams.assigned_to === 'unassigned') {
+      query = query.is('assigned_to', null);
+    } else {
+      query = query.eq('assigned_to', searchParams.assigned_to);
+    }
+  }
+
+  // Apply campaign filter
+  if (searchParams.campaign_id && searchParams.campaign_id !== 'all') {
+    query = query.eq('campaign_id', searchParams.campaign_id);
+  }
+
+  // Apply basic filters
   if (searchParams.status && searchParams.status !== 'all') {
     query = query.eq('status', searchParams.status);
   }
 
   if (searchParams.source && searchParams.source !== 'all') {
     query = query.eq('source', searchParams.source);
-  }
-
-  if (searchParams.assigned_to && searchParams.assigned_to !== 'all') {
-    if (searchParams.assigned_to === 'unassigned') {
-      query = query.is('assigned_to', null);
-    } else {
-      query = query.eq('assigned_to', searchParams.assigned_to);
-    }
   }
 
   if (searchParams.priority && searchParams.priority !== 'all') {
@@ -134,6 +149,18 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const sParams = await searchParams;
   const { leads, count, page, pageSize } = await getLeads(sParams);
 
+  const supabase = await createClient();
+  
+  const { data: campaigns = [] } = await supabase
+    .from('campaigns')
+    .select('id, name')
+    .order('name');
+
+  const { data: users = [] } = await supabase
+    .from('users')
+    .select('id, name, avatar_url')
+    .order('name');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -165,6 +192,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         </div>
       </div>
 
+      {/* Scope & Campaign Filters */}
+      <DashboardFilters campaigns={campaigns || []} />
+
       {/* Filters */}
       <LeadFilters />
 
@@ -172,6 +202,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       <Suspense fallback={<LeadTableSkeleton />}>
         <LeadTable
           leads={leads}
+          users={users || []}
           totalCount={count}
           currentPage={page}
           pageSize={pageSize}

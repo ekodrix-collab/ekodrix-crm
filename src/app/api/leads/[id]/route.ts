@@ -96,7 +96,7 @@ export async function PUT(
     };
 
     // Sanitize UUID fields (convert empty strings to null)
-    const uuidFields = ['assigned_to', 'created_by'];
+    const uuidFields = ['assigned_to', 'created_by', 'campaign_id'];
     uuidFields.forEach(field => {
       if (updateData[field as keyof Lead] === '' as any) {
         (updateData as any)[field] = null;
@@ -139,6 +139,73 @@ export async function PUT(
       }
       console.error('Error updating lead:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // WORKFLOW AUTOMATION: Lead qualification triggers (Interested, Negotiating, Converted)
+    try {
+      const isNowQualified = ['interested', 'negotiating', 'converted'].includes(body.status);
+      const wasAlreadyQualified = currentLead && ['interested', 'negotiating', 'converted'].includes(currentLead.status);
+      
+      if (isNowQualified && !wasAlreadyQualified && lead) {
+        const assignedToId = lead.assigned_to || user.id;
+        const today = new Date();
+        const dueDate = new Date();
+        dueDate.setDate(today.getDate() + 2); // 2 days from now
+        
+        // 1. Create a follow-up reminder task automatically
+        const taskData = {
+          lead_id: lead.id,
+          assigned_to: assignedToId,
+          created_by: user.id,
+          type: 'follow_up_call',
+          title: `Follow up: Lead qualified (${lead.name})`,
+          description: `Automated introductory/follow-up call task generated on lead qualification. Source: ${lead.source}. Requirements: ${lead.requirements || 'No details provided.'}`,
+          due_date: dueDate.toISOString().split('T')[0],
+          due_time: '11:00:00',
+          priority: 'high',
+          status: 'pending'
+        };
+        
+        await supabase.from('tasks').insert([taskData]);
+
+        // 2. Auto-create a Deal entry if no deals exist yet
+        if (body.status === 'interested' || body.status === 'negotiating') {
+          const { data: existingDeals } = await supabase
+            .from('deals')
+            .select('id')
+            .eq('lead_id', lead.id);
+            
+          if (!existingDeals || existingDeals.length === 0) {
+            const dealData = {
+              lead_id: lead.id,
+              title: `${lead.company_name || lead.name} - CRM Pipeline`,
+              description: `Automated deal generated on lead qualification. Lead Name: ${lead.name}`,
+              deal_value: Number(lead.deal_value) || Number(body.deal_value) || 50000,
+              currency: lead.country === 'IN' || lead.country === 'India' ? 'INR' : 'USD',
+              stage: body.status === 'negotiating' ? 'negotiation' : 'proposal',
+              probability: body.status === 'negotiating' ? 70 : 50,
+              owner_id: assignedToId,
+              expected_close_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days out
+            };
+            
+            await supabase.from('deals').insert([dealData]);
+          }
+        }
+
+        // 3. Trigger an in-app notification for the assignee
+        if (lead.assigned_to) {
+          await supabase.from('notifications').insert([{
+            user_id: lead.assigned_to,
+            title: `Lead Qualified: ${lead.name}`,
+            message: `The lead "${lead.name}" is now qualified as "${body.status}". A follow-up task and deal have been automatically created in your workflow.`,
+            type: 'lead',
+            read: false,
+            related_id: lead.id
+          }]);
+        }
+      }
+    } catch (autoErr) {
+      console.error('Workflow automation failed silently to avoid interrupting lead update:', autoErr);
     }
 
     return NextResponse.json({ data: lead });

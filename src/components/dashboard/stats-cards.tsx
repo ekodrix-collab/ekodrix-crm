@@ -28,7 +28,7 @@ interface StatCard {
   gradient: string;
 }
 
-async function getStats() {
+async function getStats(userId?: string, campaignId?: string) {
   const supabase = await createClient();
 
   const now = new Date();
@@ -45,63 +45,173 @@ async function getStats() {
 
   try {
     // Get new leads this week
-    const { count: newLeadsThisWeek } = await supabase
+    let leadsThisWeekQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', weekAgo);
 
+    if (userId) {
+      leadsThisWeekQuery = leadsThisWeekQuery.eq('assigned_to', userId);
+    }
+    if (campaignId && campaignId !== 'all') {
+      leadsThisWeekQuery = leadsThisWeekQuery.eq('campaign_id', campaignId);
+    }
+    const { count: newLeadsThisWeek } = await leadsThisWeekQuery;
+
     // Get new leads last week (for comparison)
-    const { count: newLeadsLastWeek } = await supabase
+    let leadsLastWeekQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', twoWeeksAgo)
       .lt('created_at', weekAgo);
 
+    if (userId) {
+      leadsLastWeekQuery = leadsLastWeekQuery.eq('assigned_to', userId);
+    }
+    if (campaignId && campaignId !== 'all') {
+      leadsLastWeekQuery = leadsLastWeekQuery.eq('campaign_id', campaignId);
+    }
+    const { count: newLeadsLastWeek } = await leadsLastWeekQuery;
+
     // Get today's pending tasks
-    const { count: todayTasks } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('due_date', today)
-      .eq('status', 'pending');
+    let todayTasksCount = 0;
+    if (campaignId && campaignId !== 'all') {
+      let q = supabase
+        .from('tasks')
+        .select('*, lead:leads!inner(campaign_id)', { count: 'exact', head: true })
+        .eq('due_date', today)
+        .eq('status', 'pending')
+        .eq('lead.campaign_id', campaignId);
+      if (userId) {
+        q = q.eq('assigned_to', userId);
+      }
+      const { count } = await q;
+      todayTasksCount = count || 0;
+    } else {
+      let q = supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('due_date', today)
+        .eq('status', 'pending');
+      if (userId) {
+        q = q.eq('assigned_to', userId);
+      }
+      const { count } = await q;
+      todayTasksCount = count || 0;
+    }
 
     // Get overdue tasks
-    const { count: overdueTasks } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .lt('due_date', today)
-      .eq('status', 'pending');
+    let overdueTasksCount = 0;
+    if (campaignId && campaignId !== 'all') {
+      let q = supabase
+        .from('tasks')
+        .select('*, lead:leads!inner(campaign_id)', { count: 'exact', head: true })
+        .lt('due_date', today)
+        .eq('status', 'pending')
+        .eq('lead.campaign_id', campaignId);
+      if (userId) {
+        q = q.eq('assigned_to', userId);
+      }
+      const { count } = await q;
+      overdueTasksCount = count || 0;
+    } else {
+      let q = supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .lt('due_date', today)
+        .eq('status', 'pending');
+      if (userId) {
+        q = q.eq('assigned_to', userId);
+      }
+      const { count } = await q;
+      overdueTasksCount = count || 0;
+    }
 
-    // Get today's meetings from the new meetings table
+    // Get today's meetings
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const { count: todayMeetings } = await supabase
-      .from('meetings')
-      .select('*', { count: 'exact', head: true })
-      .gte('start_time', todayStart.toISOString())
-      .lte('start_time', todayEnd.toISOString())
-      .neq('status', 'cancelled');
+    let meetingsCount = 0;
+    if (campaignId && campaignId !== 'all') {
+      let q = supabase
+        .from('meetings')
+        .select('*, lead:leads!inner(campaign_id)', { count: 'exact', head: true })
+        .gte('start_time', todayStart.toISOString())
+        .lte('start_time', todayEnd.toISOString())
+        .neq('status', 'cancelled')
+        .eq('lead.campaign_id', campaignId);
+      if (userId) {
+        q = q.eq('organizer_id', userId);
+      }
+      const { count } = await q;
+      meetingsCount = count || 0;
+    } else {
+      let q = supabase
+        .from('meetings')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', todayStart.toISOString())
+        .lte('start_time', todayEnd.toISOString())
+        .neq('status', 'cancelled');
+      if (userId) {
+        q = q.eq('organizer_id', userId);
+      }
+      const { count } = await q;
+      meetingsCount = count || 0;
+    }
 
     // Get pipeline value (active deals: not won or lost)
-    const { data: activeDeals } = await supabase
-      .from('deals')
-      .select('deal_value')
-      .not('stage', 'in', '("won","lost")');
-
-    const pipelineValue =
-      activeDeals?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    let pipelineValue = 0;
+    if (campaignId && campaignId !== 'all') {
+      let q = supabase
+        .from('deals')
+        .select('deal_value, lead:leads!inner(campaign_id)')
+        .not('stage', 'in', '("won","lost")')
+        .eq('lead.campaign_id', campaignId);
+      if (userId) {
+        q = q.eq('owner_id', userId);
+      }
+      const { data } = await q;
+      pipelineValue = data?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    } else {
+      let q = supabase
+        .from('deals')
+        .select('deal_value')
+        .not('stage', 'in', '("won","lost")');
+      if (userId) {
+        q = q.eq('owner_id', userId);
+      }
+      const { data } = await q;
+      pipelineValue = data?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    }
 
     // Get last month's pipeline for comparison
-    const { data: lastMonthDeals } = await supabase
-      .from('deals')
-      .select('deal_value')
-      .eq('stage', 'won')
-      .gte('won_date', monthAgo);
-
-    const lastMonthRevenue =
-      lastMonthDeals?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    let lastMonthRevenue = 0;
+    if (campaignId && campaignId !== 'all') {
+      let q = supabase
+        .from('deals')
+        .select('deal_value, lead:leads!inner(campaign_id)')
+        .eq('stage', 'won')
+        .gte('won_date', monthAgo)
+        .eq('lead.campaign_id', campaignId);
+      if (userId) {
+        q = q.eq('owner_id', userId);
+      }
+      const { data } = await q;
+      lastMonthRevenue = data?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    } else {
+      let q = supabase
+        .from('deals')
+        .select('deal_value')
+        .eq('stage', 'won')
+        .gte('won_date', monthAgo);
+      if (userId) {
+        q = q.eq('owner_id', userId);
+      }
+      const { data } = await q;
+      lastMonthRevenue = data?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0;
+    }
 
     // Calculate lead trend
     const leadTrend =
@@ -114,9 +224,9 @@ async function getStats() {
     return {
       newLeads: newLeadsThisWeek || 0,
       leadTrend,
-      todayTasks: todayTasks || 0,
-      overdueTasks: overdueTasks || 0,
-      todayMeetings: todayMeetings || 0,
+      todayTasks: todayTasksCount,
+      overdueTasks: overdueTasksCount,
+      todayMeetings: meetingsCount,
       pipelineValue,
       lastMonthRevenue,
     };
@@ -134,8 +244,13 @@ async function getStats() {
   }
 }
 
-export async function StatsCards() {
-  const stats = await getStats();
+interface StatsCardsProps {
+  userId?: string;
+  campaignId?: string;
+}
+
+export async function StatsCards({ userId, campaignId }: StatsCardsProps) {
+  const stats = await getStats(userId, campaignId);
 
   const cards: StatCard[] = [
     {

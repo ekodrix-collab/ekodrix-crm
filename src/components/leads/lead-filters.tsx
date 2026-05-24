@@ -41,13 +41,11 @@ export function LeadFilters({ className }: LeadFiltersProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch team members for assignment filter
   useEffect(() => {
     const fetchUsers = async () => {
       const { data } = await supabase
         .from('users')
         .select('id, name, email')
-        .eq('is_active', true)
         .order('name');
       setUsers((data as any) || []);
     };

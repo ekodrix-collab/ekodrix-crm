@@ -83,7 +83,7 @@ export default function MeetingsPage() {
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('users').select('*').eq('is_active', true).order('name');
+      const { data, error } = await supabase.from('users').select('*').order('name');
       if (error) throw error;
       return data || [];
     },

@@ -13,14 +13,23 @@ interface FunnelData {
   percentage: number;
 }
 
-async function getFunnelData() {
+async function getFunnelData(userId?: string, campaignId?: string) {
   const supabase = await createClient();
 
   try {
     // Get lead counts by status
-    const { data: leads, error } = await supabase
+    let query = supabase
       .from('leads')
       .select('status');
+
+    if (userId) {
+      query = query.eq('assigned_to', userId);
+    }
+    if (campaignId && campaignId !== 'all') {
+      query = query.eq('campaign_id', campaignId);
+    }
+
+    const { data: leads, error } = await query;
 
     if (error) {
       console.error('Error fetching funnel data:', error);
@@ -61,8 +70,13 @@ async function getFunnelData() {
   }
 }
 
-export async function LeadFunnel() {
-  const { funnelData, totalLeadCount } = await getFunnelData();
+interface LeadFunnelProps {
+  userId?: string;
+  campaignId?: string;
+}
+
+export async function LeadFunnel({ userId, campaignId }: LeadFunnelProps) {
+  const { funnelData, totalLeadCount } = await getFunnelData(userId, campaignId);
   const funnelTotal = funnelData.reduce((sum, item) => sum + item.count, 0);
 
   // Calculate conversion rate
@@ -72,7 +86,7 @@ export async function LeadFunnel() {
   const conversionRate = funnelTotal > 0 ? calculatePercentage(convertedLeads, funnelTotal) : 0;
 
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -188,7 +202,7 @@ export async function LeadFunnel() {
 
 export function LeadFunnelSkeleton() {
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Skeleton className="w-8 h-8 rounded-lg" />
