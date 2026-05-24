@@ -38,6 +38,8 @@ import {
   LogOut,
   Shield,
   Loader2,
+  Megaphone,
+  Clock,
 } from 'lucide-react';
 import { getInitials, getAvatarColor } from '@/lib/utils';
 
@@ -56,10 +58,16 @@ const navigationItems = [
     description: 'Manage leads',
   },
   {
-    name: 'Tasks',
-    href: '/tasks',
-    icon: CheckSquare,
-    description: 'Your to-dos',
+    name: 'Follow-ups',
+    href: '/follow-ups',
+    icon: Clock,
+    description: 'Urgency follow-ups cockpit',
+  },
+  {
+    name: 'Campaigns',
+    href: '/campaigns',
+    icon: Megaphone,
+    description: 'Marketing campaigns',
   },
   {
     name: 'Meetings',

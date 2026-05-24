@@ -114,6 +114,12 @@ export const leadSchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  campaign_id: z
+    .string()
+    .uuid('Invalid campaign ID')
+    .optional()
+    .or(z.literal('')),
+
   priority: z
     .enum(['hot', 'warm', 'cold'])
     .optional()
@@ -408,6 +414,44 @@ export const paymentSchema = z.object({
 });
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+// ==========================================
+// CAMPAIGN VALIDATIONS
+// ==========================================
+
+export const campaignSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(200, 'Name must be less than 200 characters'),
+  type: z
+    .string()
+    .max(100, 'Type must be less than 100 characters')
+    .optional()
+    .or(z.literal('')),
+  source: z
+    .string()
+    .max(100, 'Source must be less than 100 characters')
+    .optional()
+    .or(z.literal('')),
+  status: z
+    .enum(['planned', 'active', 'paused', 'completed']),
+  start_date: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+  end_date: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+  notes: z
+    .string()
+    .max(1000, 'Notes must be less than 1000 characters')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type CampaignFormValues = z.infer<typeof campaignSchema>;
 
 // ==========================================
 // HELPER FUNCTIONS

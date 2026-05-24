@@ -23,8 +23,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn, getInitials, getAvatarColor } from '@/lib/utils';
 import { useMeetings } from '@/hooks/use-meetings';
 
-export function UpcomingMeetings() {
-    const { data: meetings = [], isLoading } = useMeetings({ view: 'upcoming' });
+export function UpcomingMeetings({ userId }: { userId?: string }) {
+    const { data: meetings = [], isLoading } = useMeetings({ 
+        view: 'upcoming',
+        organizer_id: userId
+    });
 
     // Show first 4 upcoming meetings
     const upcoming = meetings.slice(0, 4);
@@ -43,7 +46,7 @@ export function UpcomingMeetings() {
     const todayCount = upcoming.filter(m => isToday(parseISO(m.start_time))).length;
 
     return (
-        <Card className="overflow-hidden border-0 shadow-xl bg-card flex flex-col h-full">
+        <Card className="overflow-hidden border-0 shadow-xl bg-card flex flex-col h-auto">
             <CardHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -180,7 +183,7 @@ export function UpcomingMeetings() {
 
 export function UpcomingMeetingsSkeleton() {
     return (
-        <Card className="h-full border-0 shadow-lg bg-card text-card-foreground">
+        <Card className="h-auto border-0 shadow-lg bg-card text-card-foreground">
             <CardHeader className="p-4 border-b">
                 <Skeleton className="h-5 w-32" />
             </CardHeader>

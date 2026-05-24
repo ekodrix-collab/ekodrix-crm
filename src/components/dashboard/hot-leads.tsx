@@ -27,12 +27,12 @@ import { LEAD_STATUSES, PRIORITIES } from '@/lib/constants';
 import { LeadActionButtons } from './lead-action-buttons';
 import type { Lead } from '@/types';
 
-async function getHotLeads() {
+async function getHotLeads(userId?: string, campaignId?: string) {
   const supabase = await createClient();
 
   try {
     // Try to get hot leads first
-    let { data: leads, error } = await supabase
+    let query = supabase
       .from('leads')
       .select(
         `
@@ -40,7 +40,16 @@ async function getHotLeads() {
         assigned_user:users!assigned_to(id, name)
       `
       )
-      .in('status', ['interested', 'negotiating'])
+      .in('status', ['interested', 'negotiating']);
+
+    if (userId) {
+      query = query.eq('assigned_to', userId);
+    }
+    if (campaignId && campaignId !== 'all') {
+      query = query.eq('campaign_id', campaignId);
+    }
+
+    let { data: leads, error } = await query
       .order('priority', { ascending: false })
       .order('last_contacted_at', { ascending: true, nullsFirst: true })
       .limit(5);
@@ -51,14 +60,23 @@ async function getHotLeads() {
 
     // If no hot leads, get most recent leads
     if (!leads || leads.length === 0) {
-      const { data: recentLeads, error: recentError } = await supabase
+      let recentQuery = supabase
         .from('leads')
         .select(
           `
           *,
           assigned_user:users!assigned_to(id, name)
         `
-        )
+        );
+
+      if (userId) {
+        recentQuery = recentQuery.eq('assigned_to', userId);
+      }
+      if (campaignId && campaignId !== 'all') {
+        recentQuery = recentQuery.eq('campaign_id', campaignId);
+      }
+
+      const { data: recentLeads, error: recentError } = await recentQuery
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -80,11 +98,16 @@ async function getHotLeads() {
   }
 }
 
-export async function HotLeads() {
-  const { leads, title } = await getHotLeads();
+interface HotLeadsProps {
+  userId?: string;
+  campaignId?: string;
+}
+
+export async function HotLeads({ userId, campaignId }: HotLeadsProps) {
+  const { leads, title } = await getHotLeads(userId, campaignId);
 
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -206,7 +229,7 @@ function LeadItem({ lead }: { lead: Lead }) {
 
 export function HotLeadsSkeleton() {
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Skeleton className="w-8 h-8 rounded-lg" />

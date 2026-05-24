@@ -54,7 +54,6 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
     const { data: users } = await supabase
         .from('users')
         .select('id, name, email, role, is_active, daily_target, created_at, updated_at, avatar_url')
-        .eq('is_active', true)
         .order('name');
 
     if (!lead) {
@@ -62,7 +61,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-full space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Link href={`/leads/${id}`}>

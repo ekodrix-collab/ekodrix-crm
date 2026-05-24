@@ -22,9 +22,9 @@ export default function AuthLayout({
       </div>
 
       {/* Footer */}
-      <div className="flex flex-col">
-        <span className="text-xl font-bold leading-none">Ekodrix CRM</span>
-        <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
+      <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center text-center pointer-events-none z-10">
+        <span className="text-sm font-bold leading-none text-slate-800 dark:text-slate-200">Ekodrix CRM</span>
+        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-1.5">
           Secure Access
         </span>
       </div>

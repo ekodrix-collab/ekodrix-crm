@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const source = searchParams.get('source');
   const assigned_to = searchParams.get('assigned_to');
   const priority = searchParams.get('priority');
+  const campaign_id = searchParams.get('campaign_id');
   const search = searchParams.get('search');
   const page = parseInt(searchParams.get('page') || '1');
   const pageSize = parseInt(searchParams.get('pageSize') || '20');
@@ -21,7 +22,8 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        assigned_user:users!assigned_to(id, name, email, avatar_url)
+        assigned_user:users!assigned_to(id, name, email, avatar_url),
+        campaign:campaigns!campaign_id(id, name)
       `,
         { count: 'exact' }
       )
@@ -42,6 +44,14 @@ export async function GET(request: NextRequest) {
 
     if (priority && priority !== 'all') {
       query = query.eq('priority', priority);
+    }
+
+    if (campaign_id && campaign_id !== 'all') {
+      if (campaign_id === 'unassigned') {
+        query = query.is('campaign_id', null);
+      } else {
+        query = query.eq('campaign_id', campaign_id);
+      }
     }
 
     if (search) {
@@ -119,6 +129,7 @@ export async function POST(request: NextRequest) {
       tags: body.tags || [],
       country: body.country,
       city: body.city || null,
+      campaign_id: body.campaign_id || null,
       created_by: user.id,
     };
 

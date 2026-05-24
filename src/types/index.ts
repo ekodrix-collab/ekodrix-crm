@@ -94,6 +94,9 @@ export interface Lead {
   // Tags
   tags?: string[] | null;
 
+  // Campaign
+  campaign_id?: string | null;
+
   // Metadata
   created_at: string;
   updated_at: string;
@@ -106,6 +109,7 @@ export interface Lead {
   // Joined fields (from relations)
   assigned_user?: User | null;
   created_by_user?: User | null;
+  campaign?: Campaign | null;
   interactions_count?: number;
   tasks_count?: number;
   is_follow_up_completed?: boolean;
@@ -486,6 +490,33 @@ export interface DuplicateCheckResponse {
 }
 
 // ==========================================
+// CAMPAIGN TYPES
+// ==========================================
+
+export interface Campaign {
+  id: string;
+  name: string;
+  type?: string | null;
+  source?: string | null;
+  status: 'planned' | 'active' | 'paused' | 'completed';
+  start_date?: string | null;
+  end_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignFormData {
+  name: string;
+  type?: string;
+  source?: string;
+  status?: 'planned' | 'active' | 'paused' | 'completed';
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+}
+
+// ==========================================
 // FILTER TYPES
 // ==========================================
 
@@ -494,6 +525,7 @@ export interface LeadFilters {
   source?: LeadSource | 'all';
   assigned_to?: string | 'all';
   priority?: LeadPriority | 'all';
+  campaign_id?: string | 'all';
   search?: string;
   dateFrom?: string;
   dateTo?: string;

@@ -52,7 +52,7 @@ export default function SettingsPage() {
     if (!user) return null;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-10 pb-20 px-4 sm:px-6">
+        <div className="w-full space-y-10 pb-20 px-4 sm:px-6">
             {/* Header with Glassmorphism feel */}
             <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 text-primary-foreground shadow-2xl">
                 <div className="absolute top-0 right-0 -mt-20 -mr-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>

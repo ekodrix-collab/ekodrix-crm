@@ -43,6 +43,7 @@ import {
     Loader2,
     Calendar,
     Clock,
+    Megaphone,
 } from 'lucide-react';
 import { debounce, extractInstagramUsername } from '@/lib/utils';
 import { LEAD_SOURCES, PROJECT_TYPES, BUDGET_RANGES, PRIORITIES, COUNTRIES, COUNTRY_CODE_MAP } from '@/lib/constants';
@@ -88,6 +89,7 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
             timeline: initialData?.timeline || '',
             requirements: initialData?.requirements || '',
             assigned_to: initialData?.assigned_to || '',
+            campaign_id: initialData?.campaign_id || '',
             priority: (initialData?.priority as any) || 'warm',
             tags: initialData?.tags || [],
             country: initialData?.country || '',
@@ -126,7 +128,6 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
             const { data } = await supabase
                 .from('users')
                 .select('id, name, email, role, is_active, daily_target, created_at, updated_at, avatar_url')
-                .eq('is_active', true)
                 .order('name');
             setUsers((data as any) || []);
         };
@@ -146,6 +147,20 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
         }, 500),
         [checkDuplicate, isEdit, initialData?.id]
     );
+
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCampaigns = async () => {
+            const { data } = await supabase
+                .from('campaigns')
+                .select('id, name')
+                .order('name');
+            setCampaigns(data || []);
+        };
+        fetchCampaigns();
+    }, [supabase]);
 
     // Handle field blur for duplicate check
     const handleFieldBlur = (field: string, value: string) => {
@@ -259,13 +274,11 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
             {/* Form */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Basic Information */}
+                    {/* Core Information (Reducing Lead-Entry Friction) */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <User className="w-5 h-5 text-blue-500" />
-                                Basic Information
-                            </CardTitle>
+                        <CardHeader className="pb-3 text-lg font-bold flex flex-row items-center gap-2">
+                            <span className="p-1 rounded bg-blue-500/10 text-blue-500 text-sm">⚡</span>
+                            Core Lead Details
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
@@ -275,7 +288,10 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                                     <FormItem>
                                         <FormLabel>Full Name *</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="John Smith" {...field} />
+                                            <div className="relative">
+                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <Input placeholder="John Smith" className="pl-10" {...field} />
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -286,7 +302,6 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                                 control={form.control}
                                 name="phone"
                                 render={({ field }) => {
-                                    // Find matching code - sort by length descending to match longest code first (e.g. +1 242 vs +1)
                                     const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
                                     const found = sortedCodes.find(c => field.value?.startsWith(c.code));
                                     const currentCode = found?.code || '+91';
@@ -354,25 +369,28 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
 
                             <FormField
                                 control={form.control}
-                                name="email"
+                                name="source"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <Input
-                                                    type="email"
-                                                    placeholder="john@example.com"
-                                                    className="pl-10"
-                                                    {...field}
-                                                    onBlur={(e) => {
-                                                        field.onBlur();
-                                                        handleFieldBlur('email', e.target.value);
-                                                    }}
-                                                />
-                                            </div>
-                                        </FormControl>
+                                        <FormLabel>Lead Source *</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            value={field.value}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select source" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {Object.entries(LEAD_SOURCES).map(([key, { label }]) => (
+                                                    <SelectItem key={key} value={key}>
+                                                        {label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -380,50 +398,37 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
 
                             <FormField
                                 control={form.control}
-                                name="company_name"
+                                name="campaign_id"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Company</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <Input
-                                                    placeholder="Acme Corp"
-                                                    className="pl-10"
-                                                    {...field}
-                                                />
-                                            </div>
-                                        </FormControl>
+                                        <FormLabel className="flex items-center gap-1">
+                                            <Megaphone className="w-3.5 h-3.5 text-blue-500" />
+                                            Campaign (Optional)
+                                        </FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            value={field.value || 'none'}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="No Campaign" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="none">No Campaign</SelectItem>
+                                                {campaigns.map((c) => (
+                                                    <SelectItem key={c.id} value={c.id}>
+                                                        {c.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="designation"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Designation</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="CEO / Manager" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Location Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Globe className="w-5 h-5 text-indigo-500" />
-                                Location
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="country"
@@ -464,378 +469,14 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
 
                             <FormField
                                 control={form.control}
-                                name="city"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>City</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Dubai / Kochi / etc." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Social Handles */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Instagram className="w-5 h-5 text-pink-500" />
-                                Social Handles
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="instagram_handle"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Instagram</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500" />
-                                                <Input
-                                                    placeholder="@username"
-                                                    className="pl-10"
-                                                    {...field}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        // Automatically extract username if it looks like a URL or @handle
-                                                        if (value.includes('instagram.com') || value.startsWith('@')) {
-                                                            field.onChange(extractInstagramUsername(value));
-                                                        } else {
-                                                            field.onChange(value);
-                                                        }
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        field.onBlur();
-                                                        const extracted = extractInstagramUsername(e.target.value);
-                                                        if (extracted !== e.target.value) {
-                                                            field.onChange(extracted);
-                                                        }
-                                                        handleFieldBlur('instagram_handle', extracted);
-                                                    }}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="whatsapp_number"
-                                render={({ field }) => {
-                                    const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
-                                    const found = sortedCodes.find(c => field.value?.startsWith(c.code));
-                                    const currentCode = found?.code || '+91';
-                                    const currentNumber = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
-
-                                    return (
-                                        <FormItem>
-                                            <FormLabel>WhatsApp</FormLabel>
-                                            <FormControl>
-                                                <div className="flex gap-2">
-                                                    <Select
-                                                        value={currentCode}
-                                                        onValueChange={(newCode) => {
-                                                            const val = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
-                                                            field.onChange(newCode + val);
-                                                        }}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger className="w-[120px] shrink-0">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {COUNTRY_CODES.map((c) => (
-                                                                <SelectItem key={`${c.iso}-${c.code}`} value={c.code}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <ReactCountryFlag 
-                                                                            countryCode={c.iso} 
-                                                                            svg 
-                                                                            style={{
-                                                                                width: '1.2em',
-                                                                                height: '1.2em',
-                                                                            }}
-                                                                        />
-                                                                        <span>{c.code}</span>
-                                                                    </div>
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <div className="relative flex-1">
-                                                        <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                                                        <Input
-                                                            placeholder="9876543210"
-                                                            className="pl-10"
-                                                            value={currentNumber}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value.replace(/\D/g, '');
-                                                                field.onChange(val ? currentCode + val : '');
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                field.onBlur();
-                                                                handleFieldBlur('whatsapp_number', field.value || '');
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    );
-                                }}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="linkedin_url"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>LinkedIn URL</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700" />
-                                                <Input
-                                                    placeholder="linkedin.com/in/username"
-                                                    className="pl-10"
-                                                    {...field}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="website"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Website</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                                <Input
-                                                    placeholder="www.example.com"
-                                                    className="pl-10"
-                                                    {...field}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Source & Assignment */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Source & Assignment</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="source"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Lead Source *</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select source" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {Object.entries(LEAD_SOURCES).map(([key, { label }]) => (
-                                                    <SelectItem key={key} value={key}>
-                                                        {label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="assigned_to"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Assign To</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select team member" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {users.map((user) => (
-                                                    <SelectItem key={user.id} value={user.id}>
-                                                        {user.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="priority"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Priority</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select priority" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {Object.entries(PRIORITIES).map(([key, { label, emoji }]) => (
-                                                    <SelectItem key={key} value={key}>
-                                                        {emoji} {label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="source_details"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Source Details</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Campaign name, post URL, etc."
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Project Details */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Project Details</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="project_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Project Type</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {PROJECT_TYPES.map(({ value, label }) => (
-                                                    <SelectItem key={value} value={value}>
-                                                        {label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {projectType === 'other' && (
-                                            <div className="mt-2">
-                                                <Input
-                                                    placeholder="Enter custom project type"
-                                                    value={customProjectType}
-                                                    onChange={(e) => setCustomProjectType(e.target.value)}
-                                                />
-                                            </div>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="budget_range"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Budget Range</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select budget" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {BUDGET_RANGES.map(({ value, label }) => (
-                                                    <SelectItem key={value} value={value}>
-                                                        {label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {budgetRange === 'custom' && (
-                                            <div className="mt-2">
-                                                <Input
-                                                    placeholder="Enter custom budget"
-                                                    value={customBudget}
-                                                    onChange={(e) => setCustomBudget(e.target.value)}
-                                                />
-                                            </div>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
                                 name="requirements"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel>Requirements / Notes</FormLabel>
+                                        <FormLabel>Short Note / Requirements</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Describe the project requirements..."
-                                                rows={4}
+                                                placeholder="Describe the lead's core request..."
+                                                rows={3}
                                                 {...field}
                                             />
                                         </FormControl>
@@ -845,6 +486,445 @@ export function LeadForm({ initialData, isEdit = false, users: initialUsers = []
                             />
                         </CardContent>
                     </Card>
+
+                    {/* Progressive Disclosure Toggle */}
+                    <div className="flex justify-center py-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="w-full max-w-sm border-dashed border-2 hover:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 py-5 flex items-center justify-center gap-2 text-xs font-semibold rounded-xl transition-all duration-200"
+                        >
+                            {showAdvanced ? 'Hide Advanced Form Details ↑' : 'Add Advanced Details (Email, Company, Socials...) ↓'}
+                        </Button>
+                    </div>
+
+                    {/* Advanced Fields Card Group */}
+                    {showAdvanced && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                            {/* Card 1: Additional Basic info */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <User className="w-5 h-5 text-blue-500" />
+                                        Advanced Contact Info
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Email Address</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <Input
+                                                            type="email"
+                                                            placeholder="john@example.com"
+                                                            className="pl-10"
+                                                            {...field}
+                                                            onBlur={(e) => {
+                                                                field.onBlur();
+                                                                handleFieldBlur('email', e.target.value);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="company_name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Company Name</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <Input
+                                                            placeholder="Acme Corp"
+                                                            className="pl-10"
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="designation"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Designation</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="CEO / Manager" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="city"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>City</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Dubai / Kochi / etc." {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 2: Social Media Handles */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Instagram className="w-5 h-5 text-pink-500" />
+                                        Social Media Handles
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="instagram_handle"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Instagram</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500" />
+                                                        <Input
+                                                            placeholder="@username"
+                                                            className="pl-10"
+                                                            {...field}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                // Automatically extract username if it looks like a URL or @handle
+                                                                if (value.includes('instagram.com') || value.startsWith('@')) {
+                                                                    field.onChange(extractInstagramUsername(value));
+                                                                } else {
+                                                                    field.onChange(value);
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                field.onBlur();
+                                                                const extracted = extractInstagramUsername(e.target.value);
+                                                                if (extracted !== e.target.value) {
+                                                                    field.onChange(extracted);
+                                                                }
+                                                                handleFieldBlur('instagram_handle', extracted);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="whatsapp_number"
+                                        render={({ field }) => {
+                                            const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                                            const found = sortedCodes.find(c => field.value?.startsWith(c.code));
+                                            const currentCode = found?.code || '+91';
+                                            const currentNumber = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+
+                                            return (
+                                                <FormItem>
+                                                    <FormLabel>WhatsApp Number</FormLabel>
+                                                    <FormControl>
+                                                        <div className="flex gap-2">
+                                                            <Select
+                                                                value={currentCode}
+                                                                onValueChange={(newCode) => {
+                                                                    const val = field.value?.startsWith(currentCode) ? field.value.slice(currentCode.length) : (field.value || '');
+                                                                    field.onChange(newCode + val);
+                                                                }}
+                                                            >
+                                                                <FormControl>
+                                                                    <SelectTrigger className="w-[120px] shrink-0">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {COUNTRY_CODES.map((c) => (
+                                                                        <SelectItem key={`${c.iso}-${c.code}`} value={c.code}>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <ReactCountryFlag 
+                                                                                    countryCode={c.iso} 
+                                                                                    svg 
+                                                                                    style={{
+                                                                                        width: '1.2em',
+                                                                                        height: '1.2em',
+                                                                                    }}
+                                                                                />
+                                                                                <span>{c.code}</span>
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <div className="relative flex-1">
+                                                                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                                                                <Input
+                                                                    placeholder="9876543210"
+                                                                    className="pl-10"
+                                                                    value={currentNumber}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/\D/g, '');
+                                                                        field.onChange(val ? currentCode + val : '');
+                                                                    }}
+                                                                    onBlur={(e) => {
+                                                                        field.onBlur();
+                                                                        handleFieldBlur('whatsapp_number', field.value || '');
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            );
+                                        }}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="linkedin_url"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>LinkedIn Profile URL</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700" />
+                                                        <Input
+                                                            placeholder="linkedin.com/in/username"
+                                                            className="pl-10"
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="website"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Company Website</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                        <Input
+                                                            placeholder="www.example.com"
+                                                            className="pl-10"
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 3: Source, Assignment & Priority */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Assignment & Details</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="assigned_to"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Assign To Team Member</FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select team member" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {users.map((u) => (
+                                                            <SelectItem key={u.id} value={u.id}>
+                                                                {u.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="priority"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Lead Priority</FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select priority" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {Object.entries(PRIORITIES).map(([key, { label, emoji }]) => (
+                                                            <SelectItem key={key} value={key}>
+                                                                {emoji} {label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="source_details"
+                                        render={({ field }) => (
+                                            <FormItem className="md:col-span-2">
+                                                <FormLabel>Additional Source Details</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="e.g., Post URL, Facebook Ad Set ID, custom reference..."
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 4: Project Details */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Project & Budgets</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="project_type"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Project Category</FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select type" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {PROJECT_TYPES.map(({ value, label }) => (
+                                                            <SelectItem key={value} value={value}>
+                                                                {label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {projectType === 'other' && (
+                                                    <div className="mt-2">
+                                                        <Input
+                                                            placeholder="Enter custom project type"
+                                                            value={customProjectType}
+                                                            onChange={(e) => setCustomProjectType(e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="budget_range"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Budget Level</FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select budget" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {BUDGET_RANGES.map(({ value, label }) => (
+                                                            <SelectItem key={value} value={value}>
+                                                                {label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {budgetRange === 'custom' && (
+                                                    <div className="mt-2">
+                                                        <Input
+                                                            placeholder="Enter custom budget"
+                                                            value={customBudget}
+                                                            onChange={(e) => setCustomBudget(e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="timeline"
+                                        render={({ field }) => (
+                                            <FormItem className="md:col-span-2">
+                                                <FormLabel>Expected Timeline</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. 1 month, urgent, Q3..." {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
                     {/* Timestamps - Only in Edit Mode */}
                     {isEdit && initialData && (

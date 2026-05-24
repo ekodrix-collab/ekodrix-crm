@@ -147,8 +147,8 @@ function LoginForm() {
   return (
     <>
 
-      <Card className="w-full max-w-md shadow-xl border-border bg-card rounded-[2rem] overflow-hidden relative z-10 transition-all duration-500">
-        <CardHeader className="text-center pb-6 pt-10">
+      <Card className="w-full max-w-md shadow-xl border-border bg-card rounded-2xl sm:rounded-[2rem] overflow-hidden relative z-10 transition-all duration-500">
+        <CardHeader className="text-center pb-4 sm:pb-6 pt-8 sm:pt-10">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 ring-8 ring-primary/5">
             <Target className="w-8 h-8 text-primary" />
           </div>
@@ -166,7 +166,7 @@ function LoginForm() {
         </CardHeader>
 
         <form onSubmit={showResetForm ? handleForgotPassword : handleAuth}>
-          <CardContent className="space-y-5 px-8">
+          <CardContent className="space-y-5 px-6 sm:px-8">
             {/* Error Alert */}
             {error && (
               <Alert variant="destructive" className="rounded-2xl animate-in fade-in slide-in-from-top-1">
@@ -255,7 +255,7 @@ function LoginForm() {
             )}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-4 px-8 pb-10 pt-6">
+          <CardFooter className="flex flex-col gap-4 px-6 sm:px-8 pb-8 sm:pb-10 pt-6">
             {showResetForm ? (
               <>
                 <Button
