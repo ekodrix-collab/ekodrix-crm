@@ -83,8 +83,9 @@ export function VaultEditModal({
     setLoading(true);
     setError(null);
 
-    const res = await saveVaultItemAction(projectId, {
+    const res = await saveVaultItemAction({
       id: vault?.id,
+      project_id: projectId,
       vault_type: vaultType,
       label: label || config.label,
       url,
