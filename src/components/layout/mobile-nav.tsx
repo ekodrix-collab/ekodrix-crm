@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  Users,
-  Clock,
-  BarChart3,
+  UserCheck,
+  FolderGit2,
+  MessageSquareText,
   Plus,
 } from 'lucide-react';
 import { QuickAddLeadModal } from '@/components/leads/quick-add-lead-modal';
@@ -20,9 +20,9 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    name: 'Leads',
-    href: '/leads',
-    icon: Users,
+    name: 'Clients',
+    href: '/clients',
+    icon: UserCheck,
   },
   {
     name: 'Add',
@@ -31,14 +31,14 @@ const navigationItems = [
     isAction: true,
   },
   {
-    name: 'Follow-ups',
-    href: '/follow-ups',
-    icon: Clock,
+    name: 'Projects',
+    href: '/projects',
+    icon: FolderGit2,
   },
   {
-    name: 'Reports',
-    href: '/reports',
-    icon: BarChart3,
+    name: 'Follow-ups',
+    href: '/followups',
+    icon: MessageSquareText,
   },
 ];
 

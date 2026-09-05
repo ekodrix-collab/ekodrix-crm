@@ -27,7 +27,6 @@ import {
 import {
   LayoutDashboard,
   Users,
-  CheckSquare,
   Calendar,
   IndianRupee,
   BarChart3,
@@ -40,29 +39,44 @@ import {
   Loader2,
   Megaphone,
   Clock,
+  UserCheck,
+  FolderGit2,
+  MessageSquareText,
 } from 'lucide-react';
 import { getInitials, getAvatarColor } from '@/lib/utils';
 
-// Navigation items
-const navigationItems = [
+// MAIN: Primary Focus
+const mainNavigationItems = [
   {
     name: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
-    description: 'Overview & stats',
+    description: 'Health overview & active focus',
   },
   {
-    name: 'Leads',
-    href: '/leads',
-    icon: Users,
-    description: 'Manage leads',
+    name: 'Clients & Enquiries',
+    href: '/clients',
+    icon: UserCheck,
+    description: 'Enquiries, promises & clients',
+    badge: 'Hub',
   },
   {
     name: 'Follow-ups',
-    href: '/follow-ups',
-    icon: Clock,
-    description: 'Urgency follow-ups cockpit',
+    href: '/followups',
+    icon: MessageSquareText,
+    description: 'Discussions & commitments',
+    badge: 'Urgent',
   },
+  {
+    name: 'Projects & Vaults',
+    href: '/projects',
+    icon: FolderGit2,
+    description: 'Credentials, health & costs',
+  },
+];
+
+// Agency Tools: Secondary
+const crmNavigationItems = [
   {
     name: 'Campaigns',
     href: '/campaigns',
@@ -76,16 +90,10 @@ const navigationItems = [
     description: 'Scheduled meetings',
   },
   {
-    name: 'Deals',
-    href: '/deals',
-    icon: IndianRupee,
-    description: 'Revenue pipeline',
-  },
-  {
     name: 'Reports',
     href: '/reports',
     icon: BarChart3,
-    description: 'Analytics',
+    description: 'Analytics & performance',
   },
 ];
 
@@ -117,7 +125,59 @@ export function Sidebar() {
     if (href === '/') {
       return pathname === '/';
     }
-    return pathname.startsWith(href);
+    return pathname.startsWith(href) || (href === '/followups' && pathname.startsWith('/follow-ups'));
+  };
+
+  const renderNavList = (items: typeof mainNavigationItems) => {
+    return items.map((item) => {
+      const active = isActive(item.href);
+      const Icon = item.icon;
+
+      const linkContent = (
+        <Link
+          href={item.href}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 group',
+            active
+              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+              : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          <Icon
+            className={cn(
+              'flex-shrink-0 transition-transform',
+              active ? 'w-5 h-5' : 'w-5 h-5 text-muted-foreground group-hover:text-foreground',
+              active && 'scale-105'
+            )}
+          />
+          {!collapsed && (
+            <span className="flex-1 truncate">{item.name}</span>
+          )}
+          {!collapsed && (item as any).badge && !active && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">
+              {(item as any).badge}
+            </span>
+          )}
+        </Link>
+      );
+
+      if (collapsed) {
+        return (
+          <Tooltip key={item.name}>
+            <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+            <TooltipContent side="right" className="font-medium">
+              <p>{item.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {item.description}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+
+      return <div key={item.name}>{linkContent}</div>;
+    });
   };
 
   return (
@@ -137,14 +197,14 @@ export function Sidebar() {
             )}
           >
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <Target className="w-6 h-6 text-white" />
               </div>
               {!collapsed && (
                 <div className="flex flex-col">
-                  <span className="font-bold text-lg leading-none">Ekodrix CRM</span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                    Lead Management
+                  <span className="font-bold text-lg leading-none tracking-tight">Ekodrix Hub</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+                    Agency & Vault System
                   </span>
                 </div>
               )}
@@ -169,100 +229,36 @@ export function Sidebar() {
           </Button>
 
           {/* Main Navigation */}
-          <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto custom-scrollbar">
-            {/* Section Label */}
-            {!collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Main Menu
-              </p>
-            )}
+          <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto custom-scrollbar">
+            {/* MAIN SECTION */}
+            <div className="space-y-1">
+              {!collapsed && (
+                <p className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-primary/80">
+                  Main Hub
+                </p>
+              )}
+              {renderNavList(mainNavigationItems)}
+            </div>
 
-            {navigationItems.map((item) => {
-              const active = isActive(item.href);
-              const Icon = item.icon;
+            {/* AGENCY TOOLS SECTION */}
+            <div className="space-y-1 pt-2 border-t border-border/60">
+              {!collapsed && (
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Agency Tools
+                </p>
+              )}
+              {renderNavList(crmNavigationItems)}
+            </div>
 
-              const linkContent = (
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                    active
-                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                    collapsed && 'justify-center px-2'
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'flex-shrink-0 transition-transform',
-                      active ? 'w-5 h-5' : 'w-5 h-5',
-                      active && 'scale-110'
-                    )}
-                  />
-                  {!collapsed && <span>{item.name}</span>}
-                </Link>
-              );
-
-              if (collapsed) {
-                return (
-                  <Tooltip key={item.name}>
-                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      <p>{item.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-
-              return <div key={item.name}>{linkContent}</div>;
-            })}
-
-            {/* Divider */}
-            <div className="my-4 border-t border-border" />
-
-            {/* Section Label */}
-            {!collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Settings
-              </p>
-            )}
-
-            {bottomNavigationItems.map((item) => {
-              const active = isActive(item.href);
-              const Icon = item.icon;
-
-              const linkContent = (
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                    active
-                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                    collapsed && 'justify-center px-2'
-                  )}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.name}</span>}
-                </Link>
-              );
-
-              if (collapsed) {
-                return (
-                  <Tooltip key={item.name}>
-                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      <p>{item.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-
-              return <div key={item.name}>{linkContent}</div>;
-            })}
+            {/* SETTINGS SECTION */}
+            <div className="space-y-1 pt-2 border-t border-border/60">
+              {!collapsed && (
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  System
+                </p>
+              )}
+              {renderNavList(bottomNavigationItems)}
+            </div>
           </nav>
 
           {/* User Section */}

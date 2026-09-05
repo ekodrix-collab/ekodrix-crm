@@ -1,31 +1,26 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import { StatsCards, StatsCardsSkeleton } from '@/components/dashboard/stats-cards';
-import { HotLeads, HotLeadsSkeleton } from '@/components/dashboard/hot-leads';
-import { LeadFunnel, LeadFunnelSkeleton } from '@/components/dashboard/lead-funnel';
-import { TeamActivity, TeamActivitySkeleton } from '@/components/dashboard/team-activity';
-import { UpcomingMeetings, UpcomingMeetingsSkeleton } from '@/components/dashboard/upcoming-meetings';
-import { FollowUpHub, FollowUpHubSkeleton } from '@/components/dashboard/follow-up-hub';
-import { DashboardFilters } from '@/components/dashboard/dashboard-filters';
+import { getProjectsAction } from '@/lib/actions/projects';
+import { getClientsAction } from '@/lib/actions/clients';
+import { getFollowupsAction } from '@/lib/actions/followups';
+import { HubHealthOverview } from '@/components/dashboard/hub-health-overview';
+import { HubRiskProjects } from '@/components/dashboard/hub-risk-projects';
+import { HubTodayFollowups } from '@/components/dashboard/hub-today-followups';
+import { HubNewEnquiries } from '@/components/dashboard/hub-new-enquiries';
+import { HubClientPipeline } from '@/components/dashboard/hub-client-pipeline';
+import { HubQuickActions } from '@/components/dashboard/hub-quick-actions';
 import { getGreeting } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | Ekodrix CRM',
-  description: 'Overview of your CRM activities',
+  title: 'Ekodrix Hub | Agency Management & Vault System',
+  description: 'Project Vault, Client Management & Follow-ups tracking',
 };
 
-// Force dynamic rendering to get fresh data
 export const dynamic = 'force-dynamic';
 
-interface PageProps {
-  searchParams: {
-    scope?: string;
-    campaign_id?: string;
-  };
-}
-
-export default async function DashboardPage({ searchParams }: PageProps) {
+export default async function DashboardPage() {
   const greeting = getGreeting();
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -35,78 +30,59 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   });
 
   const supabase = await createClient();
-  
-  // Get active session user
   const { data: { user } } = await supabase.auth.getUser();
-  const currentUserId = user?.id;
 
-  const sParams = await searchParams;
-  const scope = sParams.scope || 'my';
-  const campaignId = sParams.campaign_id || 'all';
-
-  // Apply filters
-  const filterUserId = scope === 'my' ? currentUserId : undefined;
-
-  // Fetch campaigns for dropdown filter
-  const { data: campaigns = [] } = await supabase
-    .from('campaigns')
+  // Fetch users for modals
+  const { data: usersData } = await supabase
+    .from('users')
     .select('id, name')
     .order('name');
+  const users = usersData || [];
+
+  // Fetch hub data concurrently
+  const [{ projects }, { clients }, { followups }] = await Promise.all([
+    getProjectsAction(),
+    getClientsAction(),
+    getFollowupsAction({ tab: 'all' }),
+  ]);
 
   return (
-    <div className="space-y-6 w-full px-1">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 w-full px-1 max-w-7xl mx-auto">
+      {/* Top Banner & Quick Actions */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-card p-5 rounded-2xl border border-border/80 shadow-sm">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {greeting}, {user?.user_metadata?.name || 'Agent'}! 👋
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight">
+            {greeting}, {user?.user_metadata?.name || 'Admin'}! 👋
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-            Here's what's happening today, {today}
+          <p className="text-muted-foreground text-sm mt-1">
+            Ekodrix Hub Agency Overview • {today}
           </p>
         </div>
+
+        <HubQuickActions clients={clients} users={users} />
       </div>
 
-      {/* Filter Bar */}
-      <DashboardFilters campaigns={campaigns || []} />
+      {/* ⭐ 1. Project Health Overview Cards (NO REVENUE DISPLAYED) */}
+      <HubHealthOverview projects={projects} />
 
-      {/* Stats Cards */}
-      <Suspense fallback={<StatsCardsSkeleton />}>
-        <StatsCards userId={filterUserId} campaignId={campaignId} />
-      </Suspense>
-
-      {/* Main Grid - 2 columns on desktop */}
+      {/* 2-Column Grid: Left (Risk Projects + New Enquiries) | Right (Today's Follow-ups + Pipeline) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
         <div className="space-y-6">
-          {/* Actionable Follow-Up Hub (Primary priority) */}
-          <Suspense fallback={<FollowUpHubSkeleton />}>
-            <FollowUpHub userId={filterUserId} campaignId={campaignId} />
-          </Suspense>
+          {/* 🚨 Projects at Risk (Unfilled Vault items) */}
+          <HubRiskProjects projects={projects} />
 
-
-          {/* Team Standing & Activity */}
-          <Suspense fallback={<TeamActivitySkeleton />}>
-            <TeamActivity campaignId={campaignId} />
-          </Suspense>
+          {/* ✨ New Enquiries This Week */}
+          <HubNewEnquiries clients={clients} />
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Upcoming Meetings */}
-          <Suspense fallback={<UpcomingMeetingsSkeleton />}>
-            <UpcomingMeetings userId={filterUserId} />
-          </Suspense>
+          {/* 💬 Today's Follow-ups & Discussions */}
+          <HubTodayFollowups followups={followups} />
 
-          {/* Hot Leads */}
-          <Suspense fallback={<HotLeadsSkeleton />}>
-            <HotLeads userId={filterUserId} campaignId={campaignId} />
-          </Suspense>
-
-          {/* Lead Funnel */}
-          <Suspense fallback={<LeadFunnelSkeleton />}>
-            <LeadFunnel userId={filterUserId} campaignId={campaignId} />
-          </Suspense>
+          {/* 📊 Client Pipeline Breakdown */}
+          <HubClientPipeline clients={clients} />
         </div>
       </div>
     </div>

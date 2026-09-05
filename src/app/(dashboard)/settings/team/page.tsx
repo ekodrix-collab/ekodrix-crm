@@ -59,6 +59,16 @@ import { getInitials, getAvatarColor } from '@/lib/utils';
 import { approveUserAction, deleteUserAction } from '@/lib/actions/user-actions';
 import type { User } from '@/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function TeamManagementPage() {
     const { user: currentUser, isAdmin } = useUser();
@@ -74,6 +84,7 @@ export default function TeamManagementPage() {
     const [isApproving, setIsApproving] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
     // Fetch users
     const fetchUsers = async () => {
@@ -119,14 +130,14 @@ export default function TeamManagementPage() {
             setError("You cannot delete your own account.");
             return;
         }
+        const target = users.find(u => u.id === userId);
+        if (target) setUserToDelete(target);
+    };
 
-        if (!confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
-            return;
-        }
-
-        setIsDeleting(userId);
-        const result = await deleteUserAction(userId);
-
+    const handleConfirmDeleteUser = async () => {
+        if (!userToDelete) return;
+        setIsDeleting(userToDelete.id);
+        const result = await deleteUserAction(userToDelete.id);
         if (result.error) {
             setError(result.error);
         } else {
@@ -134,6 +145,7 @@ export default function TeamManagementPage() {
             fetchUsers();
         }
         setIsDeleting(null);
+        setUserToDelete(null);
     };
 
     const pendingUsers = users.filter(u => !u.is_active);
@@ -155,7 +167,6 @@ export default function TeamManagementPage() {
             </div>
         );
     }
-
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -228,6 +239,58 @@ export default function TeamManagementPage() {
                     />
                 </TabsContent>
             </Tabs>
+
+            {/* Modern Remove Team Member Confirmation Dialog */}
+            <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+                <AlertDialogContent className="max-w-md rounded-2xl p-6 border border-border/80 shadow-2xl bg-card">
+                    <AlertDialogHeader className="space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <AlertDialogTitle className="text-xl font-bold text-foreground">
+                            Remove Team Member?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                            Are you sure you want to remove{' '}
+                            <strong className="text-foreground font-semibold">
+                                {userToDelete?.name}
+                            </strong>{' '}
+                            ({userToDelete?.email}) from the team? They will lose all access to Ekodrix Hub immediately. This action{' '}
+                            <span className="text-red-500 font-medium">cannot be undone</span>.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <AlertDialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                        <AlertDialogCancel
+                            disabled={!!isDeleting}
+                            className="rounded-xl font-semibold text-xs h-9 border-border/80"
+                            onClick={() => setUserToDelete(null)}
+                        >
+                            Keep Member
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={!!isDeleting}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleConfirmDeleteUser();
+                            }}
+                            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-9 gap-1.5 shadow-sm"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Removing...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Yes, Remove Member
+                                </>
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -38,6 +38,16 @@ import { cn, formatDate, formatCurrency, openWhatsApp, openPhoneDialer } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function CampaignsPage() {
   const { toast } = useToast();
@@ -46,6 +56,7 @@ export default function CampaignsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
+  const [campaignToDelete, setCampaignToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch leads for the selected campaign
   const { leads, loading: leadsLoading } = useLeads({
@@ -54,25 +65,29 @@ export default function CampaignsPage() {
     autoFetch: !!selectedCampaign,
   });
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete campaign "${name}"? This will not delete the associated leads, but they will be unlinked.`)) {
-      try {
-        await deleteCampaign.mutate(id);
-        toast({
-          title: 'Campaign Deleted',
-          description: `Campaign "${name}" has been removed.`,
-        });
-        if (selectedCampaign?.id === id) {
-          setSelectedCampaign(null);
-        }
-        refetch();
-      } catch (err: any) {
-        toast({
-          title: 'Failed to delete',
-          description: err.message,
-          variant: 'destructive',
-        });
+  const handleDelete = (id: string, name: string) => {
+    setCampaignToDelete({ id, name });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!campaignToDelete) return;
+    try {
+      await deleteCampaign.mutate(campaignToDelete.id);
+      toast({
+        title: 'Campaign Deleted',
+        description: `Campaign "${campaignToDelete.name}" has been removed.`,
+      });
+      if (selectedCampaign?.id === campaignToDelete.id) {
+        setSelectedCampaign(null);
       }
+      setCampaignToDelete(null);
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: 'Failed to delete',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -426,6 +441,47 @@ export default function CampaignsPage() {
         campaign={editingCampaign}
         onSuccess={refetch}
       />
+
+      {/* Modern Delete Campaign Confirmation Dialog */}
+      <AlertDialog open={!!campaignToDelete} onOpenChange={(open) => !open && setCampaignToDelete(null)}>
+        <AlertDialogContent className="max-w-md rounded-2xl p-6 border border-border/80 shadow-2xl bg-card">
+          <AlertDialogHeader className="space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-foreground">
+              Delete Campaign?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to delete{' '}
+              <strong className="text-foreground font-semibold">
+                "{campaignToDelete?.name}"
+              </strong>
+              ? Associated leads will be unlinked but not deleted. This action{' '}
+              <span className="text-red-500 font-medium">cannot be undone</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <AlertDialogCancel
+              className="rounded-xl font-semibold text-xs h-9 border-border/80"
+              onClick={() => setCampaignToDelete(null)}
+            >
+              Keep Campaign
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDelete();
+              }}
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-9 gap-1.5 shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Yes, Delete Campaign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

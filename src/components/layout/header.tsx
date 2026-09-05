@@ -17,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from './user-menu';
 import { useUser } from '@/hooks/use-user';
-import { QuickAddLeadModal } from '@/components/leads/quick-add-lead-modal';
+import { ClientFormModal } from '@/components/clients/client-form-modal';
 import {
   Search,
   Bell,
@@ -344,9 +344,9 @@ export function Header() {
         {/* Right Actions */}
         <div className="flex items-center gap-2 ml-4">
           {/* Quick Add Button */}
-          <Button size="sm" className="hidden sm:flex gap-2" onClick={() => setIsQuickAddOpen(true)}>
+          <Button size="sm" className="hidden sm:flex gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs" onClick={() => setIsQuickAddOpen(true)}>
             <Plus className="w-4 h-4" />
-            <span>Quick Lead</span>
+            <span>New Enquiry</span>
           </Button>
           <Button size="icon" variant="outline" className="sm:hidden" onClick={() => setIsQuickAddOpen(true)}>
             <Plus className="w-4 h-4" />
@@ -408,14 +408,14 @@ export function Header() {
                             <p className="text-xs text-muted-foreground line-clamp-2">
                               {notification.message}
                             </p>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {new Date(notification.created_at).toLocaleString()}
+                            </p>
                           </div>
                           {!notification.read && (
-                            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" title="Unread" />
+                            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
                           )}
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </p>
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator />
@@ -441,8 +441,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* Quick capture modal overlay */}
-      <QuickAddLeadModal
+      {/* Quick Enquiry modal overlay */}
+      <ClientFormModal
         open={isQuickAddOpen}
         onOpenChange={setIsQuickAddOpen}
       />
