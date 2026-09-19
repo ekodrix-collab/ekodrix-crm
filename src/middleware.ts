@@ -55,7 +55,9 @@ export async function middleware(request: NextRequest) {
   );
 
   // Define route types
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login');
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
+    request.nextUrl.pathname.startsWith('/set-password') || 
+    request.nextUrl.pathname.startsWith('/auth/callback');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isPublicFile = request.nextUrl.pathname.startsWith('/icons') ||
     request.nextUrl.pathname.startsWith('/manifest') ||
