@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Project, ProjectVault, ProjectChecklistItem } from '@/types/hub';
+import { Project, ProjectVault, ProjectChecklistItem, VaultType } from '@/types/hub';
 import { getProjectByIdAction, toggleChecklistItemAction } from '@/lib/actions/projects';
+import { deleteVaultItemAction } from '@/lib/actions/vaults';
 import { VaultItemCard } from '@/components/vault/vault-item-card';
 import { VaultEditModal } from '@/components/vault/vault-edit-modal';
 import { ProjectFormModal } from '@/components/projects/project-form-modal';
-import { PaymentFormModal } from '@/components/projects/payment-form-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -19,7 +19,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   Calendar,
-  IndianRupee,
   User,
   Globe,
   Server,
@@ -29,8 +28,8 @@ import {
   Clock,
   Loader2,
   FileText,
-  CreditCard,
   ListChecks,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +44,7 @@ export default function ProjectDetailPage() {
   const [openEditProjectModal, setOpenEditProjectModal] = useState(false);
   const [openVaultModal, setOpenVaultModal] = useState(false);
   const [selectedVaultToEdit, setSelectedVaultToEdit] = useState<ProjectVault | null>(null);
-  const [openPaymentModal, setOpenPaymentModal] = useState(false);
+  const [defaultVaultTypeToAdd, setDefaultVaultTypeToAdd] = useState<VaultType>('website_admin');
 
   const fetchProject = async () => {
     if (!projectId) return;
@@ -60,6 +59,17 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProject();
   }, [projectId]);
+
+  const handleDeleteVault = async (vaultToDelete: ProjectVault) => {
+    if (!project) return;
+    // Optimistic update
+    setProject({
+      ...project,
+      vaults: (project.vaults || []).filter((v) => v.id !== vaultToDelete.id),
+    });
+    await deleteVaultItemAction(vaultToDelete.id, project.id);
+    fetchProject();
+  };
 
   if (loading) {
     return (
@@ -129,15 +139,21 @@ export default function ProjectDetailPage() {
             </Badge>
           </div>
 
-          {project.client && (
+          {(project.client || project.client_display_name) && (
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 pl-8 font-medium">
               Client:{' '}
-              <Link
-                href={`/clients/${project.client.id}`}
-                className="text-primary font-semibold hover:underline"
-              >
-                {project.client.name} {project.client.company ? `(${project.client.company})` : ''}
-              </Link>
+              {project.client ? (
+                <Link
+                  href={`/clients/${project.client.id}`}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {project.client.name} {project.client.company ? `(${project.client.company})` : ''}
+                </Link>
+              ) : (
+                <span className="text-foreground font-semibold">
+                  {project.client_display_name}
+                </span>
+              )}
               {project.technical_owner && (
                 <>
                   <span className="text-muted-foreground">•</span>
@@ -222,12 +238,12 @@ export default function ProjectDetailPage() {
           </p>
         </div>
 
-        {/* Financial Summary */}
+        {/* Hosting Renewal */}
         <div className="space-y-1">
-          <span className="text-muted-foreground font-medium">Payment Status:</span>
+          <span className="text-muted-foreground font-medium">Hosting / Renewal:</span>
           <p className="font-semibold text-foreground flex items-center gap-1">
-            <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-            ₹{project.paid_amount.toLocaleString('en-IN')} / ₹{(project.final_amount || project.quoted_amount).toLocaleString('en-IN')}
+            <Server className="w-3.5 h-3.5 text-purple-500" />
+            {project.renewal_date || 'No renewal recorded'}
           </p>
         </div>
       </div>
@@ -239,10 +255,7 @@ export default function ProjectDetailPage() {
             <Key className="w-4 h-4" /> 🔐 Project Vault ({vaults.length})
           </TabsTrigger>
           <TabsTrigger value="details" className="text-xs sm:text-sm font-semibold gap-1.5">
-            <FileText className="w-4 h-4" /> Technical Scope
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="text-xs sm:text-sm font-semibold gap-1.5">
-            <CreditCard className="w-4 h-4" /> Payments & AMC
+            <FileText className="w-4 h-4" /> Technical Scope & Timeline
           </TabsTrigger>
           <TabsTrigger value="checklist" className="text-xs sm:text-sm font-semibold gap-1.5">
             <ListChecks className="w-4 h-4" /> Handover Checklist ({checklist.filter(c => c.is_completed).length}/{checklist.length})
@@ -251,10 +264,10 @@ export default function ProjectDetailPage() {
 
         {/* 1. VAULT TAB (Primary Focus) */}
         <TabsContent value="vault" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-3 rounded-xl border">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-primary">
-                All Stored Credentials & Access Keys
+                All Stored Credentials & Access Keys ({vaults.length})
               </h3>
               <p className="text-xs text-muted-foreground">
                 Passwords are kept masked. Click [Show] to reveal or [Copy] to copy to clipboard.
@@ -264,13 +277,98 @@ export default function ProjectDetailPage() {
             <Button
               onClick={() => {
                 setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('website_admin');
                 setOpenVaultModal(true);
               }}
               size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1 font-medium"
+              className="h-8 text-xs gap-1 font-semibold shadow-sm bg-primary text-primary-foreground"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Vault Entry
+              <Plus className="w-3.5 h-3.5" /> + Add Vault Entry
+            </Button>
+          </div>
+
+          {/* Quick Add Presets Bar (Supabase, Cloudinary, Razorpay, VPS, etc.) */}
+          <div className="flex items-center gap-1.5 flex-wrap p-2.5 bg-muted/40 rounded-lg border text-xs">
+            <span className="text-muted-foreground font-semibold flex items-center gap-1 text-[11px] mr-1">
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> Quick Add Card:
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('supabase');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-emerald-500/10 hover:text-emerald-700 hover:border-emerald-300 font-medium"
+            >
+              <Plus className="w-3 h-3 text-emerald-600" /> Supabase DB
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('cloudinary');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-indigo-500/10 hover:text-indigo-700 hover:border-indigo-300 font-medium"
+            >
+              <Plus className="w-3 h-3 text-indigo-600" /> Cloudinary Media
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('razorpay');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-blue-500/10 hover:text-blue-700 hover:border-blue-300 font-medium"
+            >
+              <Plus className="w-3 h-3 text-blue-600" /> Razorpay
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('server');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-orange-500/10 hover:text-orange-700 hover:border-orange-300 font-medium"
+            >
+              <Plus className="w-3 h-3 text-orange-600" /> VPS / Server
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('api_keys');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-cyan-500/10 hover:text-cyan-700 hover:border-cyan-300 font-medium"
+            >
+              <Plus className="w-3 h-3 text-cyan-600" /> API Keys
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVaultToEdit(null);
+                setDefaultVaultTypeToAdd('other');
+                setOpenVaultModal(true);
+              }}
+              className="h-7 text-xs px-2.5 gap-1 bg-background hover:bg-slate-500/10 hover:text-foreground font-medium"
+            >
+              <Plus className="w-3 h-3" /> Custom Card
             </Button>
           </div>
 
@@ -302,6 +400,7 @@ export default function ProjectDetailPage() {
                     setSelectedVaultToEdit(v);
                     setOpenVaultModal(true);
                   }}
+                  onDelete={handleDeleteVault}
                 />
               ))}
             </div>
@@ -350,93 +449,7 @@ export default function ProjectDetailPage() {
           </div>
         </TabsContent>
 
-        {/* 3. PAYMENTS & AMC TAB */}
-        <TabsContent value="payments" className="space-y-6">
-          {/* Financial Overview Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 bg-card border rounded-xl space-y-1">
-              <span className="text-xs text-muted-foreground">Agreed / Quoted</span>
-              <p className="text-xl font-extrabold text-foreground">
-                ₹{(project.final_amount || project.quoted_amount).toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="p-4 bg-emerald-500/5 border border-emerald-200 dark:border-emerald-900 rounded-xl space-y-1">
-              <span className="text-xs text-emerald-700 dark:text-emerald-300">Total Received</span>
-              <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
-                ₹{project.paid_amount.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="p-4 bg-amber-500/5 border border-amber-200 dark:border-amber-900 rounded-xl space-y-1">
-              <span className="text-xs text-amber-700 dark:text-amber-300">Pending Balance</span>
-              <p className="text-xl font-extrabold text-amber-700 dark:text-amber-300">
-                ₹{pendingAmount.toLocaleString('en-IN')}
-              </p>
-            </div>
-            <div className="p-4 bg-purple-500/5 border border-purple-200 dark:border-purple-900 rounded-xl space-y-1">
-              <span className="text-xs text-purple-700 dark:text-purple-300">Annual AMC</span>
-              <p className="text-xl font-extrabold text-purple-700 dark:text-purple-300">
-                ₹{project.annual_amc.toLocaleString('en-IN')} / yr
-              </p>
-            </div>
-          </div>
-
-          {/* Infrastructure & Terms Bar */}
-          <div className="p-4 bg-muted/40 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div>
-              <span className="text-muted-foreground font-semibold">Monthly Infra Cost:</span>{' '}
-              <strong className="text-foreground">₹{project.monthly_infra_cost.toLocaleString('en-IN')} / month</strong>
-              {project.payment_notes && (
-                <span className="text-muted-foreground ml-2">({project.payment_notes})</span>
-              )}
-            </div>
-            <Button
-              onClick={() => setOpenPaymentModal(true)}
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1 text-xs"
-            >
-              <Plus className="w-3.5 h-3.5" /> Add Payment Log
-            </Button>
-          </div>
-
-          {/* Payment History List */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Payment Transaction History ({payments.length})
-            </h3>
-            {payments.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No payment logs recorded yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-3 bg-card border rounded-lg flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-emerald-600 text-sm">
-                        ₹{Number(p.amount).toLocaleString('en-IN')}
-                      </span>
-                      <Badge variant="outline" className="capitalize text-[10px]">
-                        {p.payment_method}
-                      </Badge>
-                      {p.transaction_id && (
-                        <span className="text-muted-foreground font-mono text-[11px]">
-                          Ref: {p.transaction_id}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-muted-foreground font-medium">{p.payment_date}</span>
-                      {p.notes && <p className="text-[10px] text-muted-foreground italic">{p.notes}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* 4. CHECKLIST TAB */}
+        {/* 3. CHECKLIST TAB */}
         <TabsContent value="checklist" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -491,15 +504,7 @@ export default function ProjectDetailPage() {
         }}
         projectId={project.id}
         vault={selectedVaultToEdit}
-      />
-
-      <PaymentFormModal
-        open={openPaymentModal}
-        onOpenChange={(op) => {
-          setOpenPaymentModal(op);
-          if (!op) fetchProject();
-        }}
-        projectId={project.id}
+        defaultType={defaultVaultTypeToAdd}
       />
     </div>
   );

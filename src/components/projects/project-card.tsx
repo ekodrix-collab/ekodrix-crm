@@ -75,9 +75,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project.project_name}
               <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            {project.client && (
+            {(project.client || project.client_display_name) && (
               <p className="text-xs text-muted-foreground font-medium">
-                Client: <span className="text-foreground">{project.client.name}</span>
+                Client: <span className="text-foreground">{project.client?.name || project.client_display_name}</span>
               </p>
             )}
           </div>
@@ -149,7 +149,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </div>
         )}
 
-        {/* Meta Pills: Technical Owner, Expiry, Cost */}
+        {/* Meta Pills: Technical Owner, Expiry, Hosting */}
         <div className="grid grid-cols-2 gap-2 text-xs pt-1">
           {project.deadline && (
             <div className="flex items-center gap-1 text-muted-foreground">
@@ -163,12 +163,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <span className="truncate">{project.technical_owner.name}</span>
             </div>
           )}
-          {project.quoted_amount > 0 && (
+          {project.renewal_date && (
             <div className="flex items-center gap-1 text-muted-foreground">
-              <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-semibold text-foreground">
-                ₹{project.paid_amount.toLocaleString('en-IN')} / ₹{project.quoted_amount.toLocaleString('en-IN')}
-              </span>
+              <Server className="w-3.5 h-3.5 text-purple-500" />
+              <span className="truncate">Renew: {project.renewal_date}</span>
             </div>
           )}
           {project.domain_expiry_date && (

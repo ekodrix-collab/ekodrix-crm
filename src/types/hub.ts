@@ -76,7 +76,8 @@ export type ProjectStatus =
 
 export interface Project {
   id: string;
-  client_id: string;
+  client_id?: string | null;
+  client_display_name?: string | null;
   client?: Client | null;
   project_name: string;
   project_type: ProjectType;
