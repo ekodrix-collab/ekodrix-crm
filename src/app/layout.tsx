@@ -73,7 +73,10 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#059669" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
-      <body className={`${inter.className} bg-background text-foreground antialiased`}>
+      <body
+        className={`${inter.className} bg-background text-foreground antialiased`}
+        suppressHydrationWarning
+      >
         <QueryProvider>
           {children}
           <Toaster />

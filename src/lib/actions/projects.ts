@@ -51,7 +51,7 @@ export async function getProjectsAction(filters?: {
 
     if (filters?.search && filters.search.trim() !== '') {
       const s = `%${filters.search.trim()}%`;
-      query = query.or(`project_name.ilike.${s},description.ilike.${s}`);
+      query = query.or(`project_name.ilike.${s},description.ilike.${s},client_display_name.ilike.${s}`);
     }
 
     const { data, error } = await query;
@@ -125,7 +125,8 @@ export async function getProjectByIdAction(id: string) {
 
 export async function saveProjectAction(projectData: {
   id?: string;
-  client_id: string;
+  client_id?: string | null;
+  client_display_name?: string | null;
   project_name: string;
   project_type: string;
   status?: string;
@@ -144,12 +145,14 @@ export async function saveProjectAction(projectData: {
   description?: string;
   scope_of_work?: string;
   required_vault_types?: VaultType[];
+  required_vault_items?: { type: string; label: string }[];
 }) {
   try {
     const supabase = await createClient();
 
     const payload: any = {
-      client_id: projectData.client_id,
+      client_id: projectData.client_id || null,
+      client_display_name: projectData.client_display_name || null,
       project_name: projectData.project_name,
       project_type: projectData.project_type || 'website',
       status: projectData.status || 'active',
@@ -192,25 +195,47 @@ export async function saveProjectAction(projectData: {
       projectId = data.id;
 
       // Auto-populate vault items selected or default required
-      const vaultTypesToCreate = projectData.required_vault_types || [
-        'website_admin',
-        'business_email',
-        'domain',
-        'hosting',
-        'github',
-        'vercel',
-      ];
+      let vaultRecords: any[] = [];
 
-      const vaultRecords = vaultTypesToCreate.map((vt) => {
-        const config = VAULT_TYPES[vt as VaultType] || { label: vt, defaultRequired: true };
-        return {
+      if (projectData.required_vault_items) {
+        vaultRecords = projectData.required_vault_items.map((item) => ({
           project_id: projectId,
-          vault_type: vt,
-          label: config.label,
+          vault_type: item.type,
+          label: item.label,
           is_required: true,
           is_filled: false,
-        };
-      });
+        }));
+      } else if (projectData.required_vault_types) {
+        vaultRecords = projectData.required_vault_types.map((vt) => {
+          const config = VAULT_TYPES[vt as VaultType] || { label: vt };
+          return {
+            project_id: projectId,
+            vault_type: vt,
+            label: config.label,
+            is_required: true,
+            is_filled: false,
+          };
+        });
+      } else {
+        const defaultVaultTypes = [
+          'website_admin',
+          'business_email',
+          'domain',
+          'hosting',
+          'github',
+          'vercel',
+        ];
+        vaultRecords = defaultVaultTypes.map((vt) => {
+          const config = VAULT_TYPES[vt as VaultType] || { label: vt };
+          return {
+            project_id: projectId,
+            vault_type: vt,
+            label: config.label,
+            is_required: true,
+            is_filled: false,
+          };
+        });
+      }
 
       if (vaultRecords.length > 0) {
         await supabase.from('project_vaults').insert(vaultRecords);

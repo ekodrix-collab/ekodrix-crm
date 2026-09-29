@@ -60,9 +60,9 @@ export function HubRiskProjects({ projects }: HubRiskProjectsProps) {
                     >
                       {project.project_name}
                     </Link>
-                    {project.client && (
+                    {(project.client || project.client_display_name) && (
                       <span className="text-xs text-muted-foreground hidden sm:inline">
-                        ({project.client.name})
+                        ({project.client?.name || project.client_display_name})
                       </span>
                     )}
                   </div>

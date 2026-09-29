@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS clients (
 -- =========================================================
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id UUID REFERENCES clients(id) ON DELETE CASCADE NOT NULL,
+    client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+    client_display_name VARCHAR(255),
     
     project_name VARCHAR(255) NOT NULL,
     project_type VARCHAR(50) DEFAULT 'website' CHECK (project_type IN ('website', 'ecommerce', 'app', 'saas', 'landing_page', 'branding', 'other')),
